@@ -5,12 +5,15 @@ import (
 	"os"
 
 	authui "ecommerce-cli/internal/ui/auth"
+	productsui "ecommerce-cli/internal/ui/products"
 
 	"github.com/charmbracelet/huh"
 )
 
 func main() {
-	authClient := authui.NewAuthClient("http://localhost:8080")
+	baseURL := "http://localhost:8080"
+	authClient := authui.NewAuthClient(baseURL)
+	productClient := productsui.NewProductClient(baseURL)
 
 	for {
 		var action string
@@ -25,6 +28,7 @@ func main() {
 		var options []huh.Option[string]
 		if authClient.Token == "" {
 			options = []huh.Option[string]{
+				huh.NewOption("Parcourir / Rechercher des produits", "products"),
 				huh.NewOption("Connexion", "login"),
 				huh.NewOption("Inscription", "register"),
 				huh.NewOption("Confirmation de compte", "confirm"),
@@ -33,7 +37,7 @@ func main() {
 			}
 		} else {
 			options = []huh.Option[string]{
-				huh.NewOption("Parcourir les produits", "products"),
+				huh.NewOption("Parcourir / Rechercher des produits", "products"),
 				huh.NewOption("Mon Panier", "cart"),
 				huh.NewOption("Mes Commandes", "orders"),
 				huh.NewOption("Déconnexion", "logout"),
@@ -56,6 +60,8 @@ func main() {
 		}
 
 		switch action {
+		case "products":
+			_ = productClient.RunProductSearchMenu()
 		case "login":
 			_ = authClient.RunLoginForm()
 		case "register":
@@ -72,8 +78,6 @@ func main() {
 		case "quit":
 			fmt.Println("Au revoir.")
 			os.Exit(0)
-		case "products":
-			fmt.Println("Module Produits (en cours de développement)")
 		case "cart":
 			fmt.Println("Module Panier (en cours de développement)")
 		case "orders":
