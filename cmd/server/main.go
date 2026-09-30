@@ -22,7 +22,7 @@ func main() {
 		log.Printf("migration warning: %v", err)
 	}
 
-	router := server.NewRouter(db)
+	router := server.NewRouter(db, cfg.DBDriver)
 
 	log.Printf("Starting HTTP backend server on port :%s ...", cfg.ServerPort)
 	if err := http.ListenAndServe(":"+cfg.ServerPort, router); err != nil {

@@ -39,7 +39,7 @@ func TestProductSearch(t *testing.T) {
 		t.Fatalf("failed to execute schema: %v", err)
 	}
 
-	router := server.NewRouter(db)
+	router := server.NewRouter(db, "sqlite")
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 

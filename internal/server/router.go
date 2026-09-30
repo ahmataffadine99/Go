@@ -8,11 +8,12 @@ import (
 	"ecommerce-cli/internal/server/handlers"
 )
 
-func NewRouter(db *sql.DB) http.Handler {
+func NewRouter(db *sql.DB, driverName string) http.Handler {
 	mux := http.NewServeMux()
 
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
+	productRepo.SetDriverName(driverName)
 	cartRepo := repository.NewCartRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
 

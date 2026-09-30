@@ -33,7 +33,7 @@ func TestAuthFlow(t *testing.T) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	router := server.NewRouter(db)
+	router := server.NewRouter(db, "sqlite")
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 

@@ -6,23 +6,33 @@ import (
 	"fmt"
 	"strings"
 
+	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 )
 
 var ErrProductNotFound = errors.New("product not found")
 
 type ProductRepository struct {
-	db *sql.DB
+	db         *sql.DB
+	driverName string
 }
 
 func NewProductRepository(db *sql.DB) *ProductRepository {
 	return &ProductRepository{db: db}
 }
 
+func (r *ProductRepository) SetDriverName(driver string) {
+	r.driverName = driver
+}
+
+func (r *ProductRepository) rebind(query string) string {
+	return database.RebindQuery(r.driverName, query)
+}
+
 func (r *ProductRepository) Create(p *models.Product) error {
 	query := `INSERT INTO products (business_id, name, description, price, category, stock) 
 	          VALUES (?, ?, ?, ?, ?, ?)`
-	res, err := r.db.Exec(query, p.BusinessID, p.Name, p.Description, p.Price, p.Category, p.Stock)
+	res, err := r.db.Exec(r.rebind(query), p.BusinessID, p.Name, p.Description, p.Price, p.Category, p.Stock)
 	if err != nil {
 		return fmt.Errorf("failed to insert product: %w", err)
 	}
@@ -36,7 +46,7 @@ func (r *ProductRepository) Create(p *models.Product) error {
 func (r *ProductRepository) GetByID(id int64) (*models.Product, error) {
 	query := `SELECT id, business_id, name, description, price, category, stock, created_at 
 	          FROM products WHERE id = ?`
-	row := r.db.QueryRow(query, id)
+	row := r.db.QueryRow(r.rebind(query), id)
 
 	var p models.Product
 	err := row.Scan(&p.ID, &p.BusinessID, &p.Name, &p.Description, &p.Price, &p.Category, &p.Stock, &p.CreatedAt)
@@ -76,7 +86,7 @@ func (r *ProductRepository) Search(filter models.ProductFilter) ([]models.Produc
 
 	query += ` ORDER BY id DESC`
 
-	rows, err := r.db.Query(query, args...)
+	rows, err := r.db.Query(r.rebind(query), args...)
 	if err != nil {
 		return nil, err
 	}
