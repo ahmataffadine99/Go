@@ -7,7 +7,6 @@ import (
 
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/repository"
-	"ecommerce-cli/internal/server"
 )
 
 type OrderHandler struct {
@@ -25,7 +24,7 @@ func (h *OrderHandler) ListUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(server.UserIDKey).(int64)
+	userID, _ := r.Context().Value(models.UserIDKey).(int64)
 	orders, err := h.orderRepo.GetUserOrders(userID)
 	if err != nil {
 		http.Error(w, `{"error":"failed to fetch orders"}`, http.StatusInternalServerError)

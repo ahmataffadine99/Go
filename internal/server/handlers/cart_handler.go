@@ -7,7 +7,6 @@ import (
 
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/repository"
-	"ecommerce-cli/internal/server"
 	"ecommerce-cli/internal/utils"
 )
 
@@ -26,7 +25,7 @@ func (h *CartHandler) GetCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(server.UserIDKey).(int64)
+	userID, _ := r.Context().Value(models.UserIDKey).(int64)
 	cart, err := h.cartRepo.GetOrCreateActiveCart(userID)
 	if err != nil {
 		http.Error(w, `{"error":"failed to fetch cart"}`, http.StatusInternalServerError)
@@ -43,7 +42,7 @@ func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(server.UserIDKey).(int64)
+	userID, _ := r.Context().Value(models.UserIDKey).(int64)
 	cart, err := h.cartRepo.GetOrCreateActiveCart(userID)
 	if err != nil {
 		http.Error(w, `{"error":"failed to get active cart"}`, http.StatusInternalServerError)
@@ -67,7 +66,7 @@ func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CartHandler) UpdateOrRemoveItem(w http.ResponseWriter, r *http.Request) {
-	userID, _ := r.Context().Value(server.UserIDKey).(int64)
+	userID, _ := r.Context().Value(models.UserIDKey).(int64)
 	cart, err := h.cartRepo.GetOrCreateActiveCart(userID)
 	if err != nil {
 		http.Error(w, `{"error":"failed to get active cart"}`, http.StatusInternalServerError)
@@ -112,7 +111,7 @@ func (h *CartHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, _ := r.Context().Value(server.UserIDKey).(int64)
+	userID, _ := r.Context().Value(models.UserIDKey).(int64)
 	cart, err := h.cartRepo.GetOrCreateActiveCart(userID)
 	if err != nil || len(cart.Items) == 0 {
 		http.Error(w, `{"error":"cart is empty or not found"}`, http.StatusBadRequest)

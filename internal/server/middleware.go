@@ -5,13 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-)
 
-type contextKey string
-
-const (
-	UserIDKey contextKey = "user_id"
-	RoleKey   contextKey = "role"
+	"ecommerce-cli/internal/models"
 )
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -20,11 +15,6 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if authHeader == "" {
 			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 			return
-		}
-
-		parts := strings.Split(authHeader, "_")
-		if len(parts) < 3 || parts[0] != "Bearer token" {
-			// format: Bearer token_{id}_{role}_{timestamp}
 		}
 
 		rawToken := strings.TrimPrefix(authHeader, "Bearer ")
@@ -42,8 +32,8 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		role := tokenParts[2]
 
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		ctx = context.WithValue(ctx, RoleKey, role)
+		ctx := context.WithValue(r.Context(), models.UserIDKey, userID)
+		ctx = context.WithValue(ctx, models.RoleKey, role)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
@@ -51,7 +41,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 func AdminOnlyMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		role, _ := r.Context().Value(RoleKey).(string)
+		role, _ := r.Context().Value(models.RoleKey).(string)
 		if role != "admin" {
 			http.Error(w, `{"error":"forbidden: admin access required"}`, http.StatusForbidden)
 			return

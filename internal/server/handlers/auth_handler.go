@@ -45,14 +45,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string inhabitant]{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message":           "user registered successfully, please confirm account",
 		"confirmation_code": confirmCode,
 		"user_id":           user.ID,
 	})
 }
-
-type inhabitant = interface{}
 
 func (h *AuthHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
