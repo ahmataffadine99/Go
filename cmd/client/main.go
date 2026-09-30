@@ -4,68 +4,82 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
+	authui "ecommerce-cli/internal/ui/auth"
+
+	"github.com/charmbracelet/huh"
 )
 
-type model struct {
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
-}
-
-func initialModel() model {
-	return model{
-		choices:  []string{"Produits", "Panier", "Commandes", "Mon Compte", "Quitter"},
-		selected: make(map[int]struct{}),
-	}
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-		case "enter":
-			if m.cursor == len(m.choices)-1 {
-				return m, tea.Quit
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m model) View() string {
-	s := "--- E-Commerce Client CLI ---\n\n"
-
-	for i, choice := range m.choices {
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-		s += fmt.Sprintf("%s %s\n", cursor, choice)
-	}
-
-	s += "\nAppuyez sur q pour quitter.\n"
-	return s
-}
-
 func main() {
-	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running client application: %v\n", err)
-		os.Exit(1)
+	authClient := authui.NewAuthClient("http://localhost:8080")
+
+	for {
+		var action string
+
+		menuTitle := "--- E-Commerce Client CLI ---"
+		if authClient.Email != "" {
+			menuTitle = fmt.Sprintf("--- E-Commerce Client CLI (%s) ---", authClient.Email)
+		}
+
+		fmt.Println(menuTitle)
+
+		var options []huh.Option[string]
+		if authClient.Token == "" {
+			options = []huh.Option[string]{
+				huh.NewOption("Connexion", "login"),
+				huh.NewOption("Inscription", "register"),
+				huh.NewOption("Confirmation de compte", "confirm"),
+				huh.NewOption("Mot de passe oublié", "reset"),
+				huh.NewOption("Quitter", "quit"),
+			}
+		} else {
+			options = []huh.Option[string]{
+				huh.NewOption("Parcourir les produits", "products"),
+				huh.NewOption("Mon Panier", "cart"),
+				huh.NewOption("Mes Commandes", "orders"),
+				huh.NewOption("Déconnexion", "logout"),
+				huh.NewOption("Quitter", "quit"),
+			}
+		}
+
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewSelect[string]().
+					Title("Menu principal").
+					Options(options...).
+					Value(&action),
+			),
+		)
+
+		if err := form.Run(); err != nil {
+			fmt.Println("Au revoir.")
+			os.Exit(0)
+		}
+
+		switch action {
+		case "login":
+			_ = authClient.RunLoginForm()
+		case "register":
+			_ = authClient.RunRegisterForm()
+		case "confirm":
+			_ = authClient.RunConfirmFormWithEmail("", "")
+		case "reset":
+			_ = authClient.RunResetPasswordForm()
+		case "logout":
+			authClient.Token = ""
+			authClient.Email = ""
+			authClient.Role = ""
+			fmt.Println("Déconnexion réussie.")
+		case "quit":
+			fmt.Println("Au revoir.")
+			os.Exit(0)
+		case "products":
+			fmt.Println("Module Produits (en cours de développement)")
+		case "cart":
+			fmt.Println("Module Panier (en cours de développement)")
+		case "orders":
+			fmt.Println("Module Commandes (en cours de développement)")
+		}
+
+		fmt.Println()
 	}
 }
