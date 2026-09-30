@@ -3,8 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	_ "modernc.org/sqlite"
@@ -16,8 +18,18 @@ func InitDB(driverName, dataSourceName string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	var pingErr error
+	for i := 1; i <= 10; i++ {
+		pingErr = db.Ping()
+		if pingErr == nil {
+			break
+		}
+		log.Printf("waiting for database connection (%d/10)...: %v", i, pingErr)
+		time.Sleep(1 * time.Second)
+	}
+
+	if pingErr != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	return db, nil
@@ -29,7 +41,6 @@ func RunMigrations(db *sql.DB, schemaPath string) error {
 		return fmt.Errorf("failed to read schema file: %w", err)
 	}
 
-	// Split statements by semicolon for clean execution
 	statements := strings.Split(string(content), ";")
 	for _, stmt := range statements {
 		stmt = strings.TrimSpace(stmt)
@@ -37,7 +48,7 @@ func RunMigrations(db *sql.DB, schemaPath string) error {
 			continue
 		}
 		if _, err := db.Exec(stmt); err != nil {
-			// Ignore existing tables or duplicate errors during initial seeding
+			log.Printf("schema migration line note: %v", err)
 		}
 	}
 

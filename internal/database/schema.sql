@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'client',
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     business_id VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE TABLE IF NOT EXISTS carts (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     business_id VARCHAR(100) UNIQUE NOT NULL,
     user_id INT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'active',
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS carts (
 );
 
 CREATE TABLE IF NOT EXISTS cart_items (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     cart_id INT NOT NULL,
     product_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 );
 
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     business_id VARCHAR(100) UNIQUE NOT NULL,
     user_id INT NOT NULL,
     cart_id INT NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     order_id INT NOT NULL,
     product_id INT NOT NULL,
     quantity INT NOT NULL,
@@ -58,17 +58,17 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 INSERT INTO products (business_id, name, description, price, category, stock) 
-SELECT 'PDT-LAP001', 'PC Portable Go', 'Ordinateur portable performant pour développeurs Go', 1199.99, 'Informatique', 10
-WHERE NOT EXISTS (SELECT 1 FROM products WHERE business_id = 'PDT-LAP001');
+VALUES ('PDT-LAP001', 'PC Portable Go', 'Ordinateur portable performant pour développeurs Go', 1199.99, 'Informatique', 10)
+ON CONFLICT (business_id) DO NOTHING;
 
 INSERT INTO products (business_id, name, description, price, category, stock) 
-SELECT 'PDT-CLV002', 'Clavier Mécanique RGB', 'Clavier mécanique rétroéclairé switchs blue', 89.90, 'Accessoires', 25
-WHERE NOT EXISTS (SELECT 1 FROM products WHERE business_id = 'PDT-CLV002');
+VALUES ('PDT-CLV002', 'Clavier Mécanique RGB', 'Clavier mécanique rétroéclairé switchs blue', 89.90, 'Accessoires', 25)
+ON CONFLICT (business_id) DO NOTHING;
 
 INSERT INTO products (business_id, name, description, price, category, stock) 
-SELECT 'PDT-MOU003', 'Souris Ergonomique Sans Fil', 'Souris sans fil haute précision 4000 DPI', 49.99, 'Accessoires', 30
-WHERE NOT EXISTS (SELECT 1 FROM products WHERE business_id = 'PDT-MOU003');
+VALUES ('PDT-MOU003', 'Souris Ergonomique Sans Fil', 'Souris sans fil haute précision 4000 DPI', 49.99, 'Accessoires', 30)
+ON CONFLICT (business_id) DO NOTHING;
 
 INSERT INTO products (business_id, name, description, price, category, stock) 
-SELECT 'PDT-MON004', 'Écran 27 Pouces 4K', 'Moniteur 27 pouces IPS 4K UHD 144Hz', 349.50, 'Informatique', 15
-WHERE NOT EXISTS (SELECT 1 FROM products WHERE business_id = 'PDT-MON004');
+VALUES ('PDT-MON004', 'Écran 27 Pouces 4K', 'Moniteur 27 pouces IPS 4K UHD 144Hz', 349.50, 'Informatique', 15)
+ON CONFLICT (business_id) DO NOTHING;
