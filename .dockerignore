@@ -1,0 +1,8 @@
+.git
+.gitignore
+*.exe
+*.db
+*.sqlite
+vendor/
+.vscode/
+.idea/
