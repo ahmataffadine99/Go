@@ -20,7 +20,7 @@ func LoadConfig() *Config {
 
 	dbDriver := os.Getenv("DB_DRIVER")
 	if dbDriver == "" {
-		dbDriver = "sqlite3"
+		dbDriver = "sqlite"
 	}
 
 	dbURL := os.Getenv("DATABASE_URL")
