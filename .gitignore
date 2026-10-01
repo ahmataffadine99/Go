@@ -32,3 +32,6 @@ go.work
 # OS files
 .DS_Store
 Thumbs.db
+
+# PDFs and Docs
+*.pdf
