@@ -11,8 +11,8 @@ import (
 	"ecommerce-cli/internal/utils"
 
 	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/paymentintent"
-	"github.com/stripe/stripe-go/v78/paymentmethod"
+	"github.com/stripe/stripe-go/v78/charge"
+	"github.com/stripe/stripe-go/v78/token"
 )
 
 type CartHandler struct {
@@ -173,39 +173,32 @@ func (h *CartHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	if h.stripeKey != "" {
 		stripe.Key = h.stripeKey
 		parts := strings.Split(req.ExpiryDate, "/")
-		expMonth, _ := strconv.ParseInt(parts[0], 10, 64)
-		expYear, _ := strconv.ParseInt("20"+parts[1], 10, 64)
 
 		amountCents := int64(cart.TotalTTC * 100)
 
-		pmParams := &stripe.PaymentMethodParams{
-			Type: stripe.String("card"),
-			Card: &stripe.PaymentMethodCardParams{
+		tokenParams := &stripe.TokenParams{
+			Card: &stripe.CardParams{
 				Number:   stripe.String(req.CardNumber),
-				ExpMonth: stripe.Int64(expMonth),
-				ExpYear:  stripe.Int64(expYear),
+				ExpMonth: stripe.String(parts[0]),
+				ExpYear:  stripe.String(parts[1]),
 				CVC:      stripe.String(req.CVC),
 			},
 		}
 
-		pm, err := paymentmethod.New(pmParams)
+		tok, err := token.New(tokenParams)
 		if err != nil {
-			http.Error(w, `{"error":"stripe card rejected: `+err.Error()+`"}`, http.StatusBadRequest)
+			http.Error(w, `{"error":"stripe token rejected: `+err.Error()+`"}`, http.StatusBadRequest)
 			return
 		}
 
-		piParams := &stripe.PaymentIntentParams{
-			Amount:        stripe.Int64(amountCents),
-			Currency:      stripe.String(string(stripe.CurrencyEUR)),
-			PaymentMethod: stripe.String(pm.ID),
-			Confirm:       stripe.Bool(true),
-			AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
-				Enabled:        stripe.Bool(true),
-				AllowRedirects: stripe.String("never"),
-			},
+		chargeParams := &stripe.ChargeParams{
+			Amount:      stripe.Int64(amountCents),
+			Currency:    stripe.String(string(stripe.CurrencyEUR)),
+			Description: stripe.String("Commande CLI E-commerce"),
+			Source:      &stripe.PaymentSourceSourceParams{Token: stripe.String(tok.ID)},
 		}
 
-		_, err = paymentintent.New(piParams)
+		_, err = charge.New(chargeParams)
 		if err != nil {
 			http.Error(w, `{"error":"stripe payment failed: `+err.Error()+`"}`, http.StatusBadRequest)
 			return
