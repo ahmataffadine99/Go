@@ -6,6 +6,7 @@ import (
 
 	authui "ecommerce-cli/internal/ui/auth"
 	cartui "ecommerce-cli/internal/ui/cart"
+	ordersui "ecommerce-cli/internal/ui/orders"
 	productsui "ecommerce-cli/internal/ui/products"
 
 	"github.com/charmbracelet/huh"
@@ -16,6 +17,7 @@ func main() {
 	authClient := authui.NewAuthClient(baseURL)
 	productClient := productsui.NewProductClient(baseURL)
 	cartClient := cartui.NewCartClient(baseURL)
+	orderClient := ordersui.NewOrderClient(baseURL, "")
 
 	for {
 		var action string
@@ -84,7 +86,8 @@ func main() {
 			cartClient.Token = authClient.Token
 			_ = cartClient.RunCartMenu()
 		case "orders":
-			fmt.Println("Module Commandes (en cours de développement)")
+			orderClient.Token = authClient.Token
+			orderClient.RunOrdersMenu()
 		}
 
 		fmt.Println()

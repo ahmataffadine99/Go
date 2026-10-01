@@ -86,6 +86,27 @@ func (r *OrderRepository) GetUserOrders(userID int64) ([]models.Order, error) {
 		if reason.Valid {
 			o.CancelReason = reason.String
 		}
+
+		itemQuery := `SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.unit_price, 
+					  p.id, p.name, p.description, p.price, p.stock, p.category, p.business_id 
+					  FROM order_items oi 
+					  JOIN products p ON oi.product_id = p.id 
+					  WHERE oi.order_id = ?`
+		itemRows, err := r.db.Query(database.RebindQuery(itemQuery), o.ID)
+		if err == nil {
+			var items []models.OrderItem
+			for itemRows.Next() {
+				var i models.OrderItem
+				var p models.Product
+				if err := itemRows.Scan(&i.ID, &i.OrderID, &i.ProductID, &i.Quantity, &i.UnitPrice,
+					&p.ID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.Category, &p.BusinessID); err == nil {
+					i.Product = &p
+					items = append(items, i)
+				}
+			}
+			itemRows.Close()
+			o.Items = items
+		}
 		orders = append(orders, o)
 	}
 	return orders, nil
@@ -109,6 +130,27 @@ func (r *OrderRepository) ListAllOrders() ([]models.Order, error) {
 		}
 		if reason.Valid {
 			o.CancelReason = reason.String
+		}
+
+		itemQuery := `SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.unit_price, 
+					  p.id, p.name, p.description, p.price, p.stock, p.category, p.business_id 
+					  FROM order_items oi 
+					  JOIN products p ON oi.product_id = p.id 
+					  WHERE oi.order_id = ?`
+		itemRows, err := r.db.Query(database.RebindQuery(itemQuery), o.ID)
+		if err == nil {
+			var items []models.OrderItem
+			for itemRows.Next() {
+				var i models.OrderItem
+				var p models.Product
+				if err := itemRows.Scan(&i.ID, &i.OrderID, &i.ProductID, &i.Quantity, &i.UnitPrice,
+					&p.ID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.Category, &p.BusinessID); err == nil {
+					i.Product = &p
+					items = append(items, i)
+				}
+			}
+			itemRows.Close()
+			o.Items = items
 		}
 		orders = append(orders, o)
 	}
