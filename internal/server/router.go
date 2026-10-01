@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"net/http"
 
+	"ecommerce-cli/internal/config"
 	"ecommerce-cli/internal/repository"
 	"ecommerce-cli/internal/server/handlers"
 )
 
-func NewRouter(db *sql.DB, driverName string) http.Handler {
+func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	userRepo := repository.NewUserRepository(db)
@@ -18,7 +19,7 @@ func NewRouter(db *sql.DB, driverName string) http.Handler {
 
 	authH := handlers.NewAuthHandler(userRepo)
 	prodH := handlers.NewProductHandler(productRepo)
-	cartH := handlers.NewCartHandler(cartRepo, orderRepo, productRepo)
+	cartH := handlers.NewCartHandler(cartRepo, orderRepo, productRepo, cfg.StripeKey)
 	orderH := handlers.NewOrderHandler(orderRepo, userRepo)
 	userH := handlers.NewUserHandler(userRepo)
 

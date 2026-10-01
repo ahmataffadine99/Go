@@ -4,20 +4,31 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/repository"
 	"ecommerce-cli/internal/utils"
+
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/paymentintent"
+	"github.com/stripe/stripe-go/v78/paymentmethod"
 )
 
 type CartHandler struct {
 	cartRepo    *repository.CartRepository
 	orderRepo   *repository.OrderRepository
 	productRepo *repository.ProductRepository
+	stripeKey   string
 }
 
-func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository) *CartHandler {
-	return &CartHandler{cartRepo: cartRepo, orderRepo: orderRepo, productRepo: productRepo}
+func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, stripeKey string) *CartHandler {
+	return &CartHandler{
+		cartRepo:    cartRepo,
+		orderRepo:   orderRepo,
+		productRepo: productRepo,
+		stripeKey:   stripeKey,
+	}
 }
 
 func (h *CartHandler) GetCart(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +168,48 @@ func (h *CartHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		!utils.ValidateExpiry(req.ExpiryDate) {
 		http.Error(w, `{"error":"invalid card details"}`, http.StatusBadRequest)
 		return
+	}
+
+	if h.stripeKey != "" {
+		stripe.Key = h.stripeKey
+		parts := strings.Split(req.ExpiryDate, "/")
+		expMonth, _ := strconv.ParseInt(parts[0], 10, 64)
+		expYear, _ := strconv.ParseInt("20"+parts[1], 10, 64)
+
+		amountCents := int64(cart.TotalTTC * 100)
+
+		pmParams := &stripe.PaymentMethodParams{
+			Type: stripe.String("card"),
+			Card: &stripe.PaymentMethodCardParams{
+				Number:   stripe.String(req.CardNumber),
+				ExpMonth: stripe.Int64(expMonth),
+				ExpYear:  stripe.Int64(expYear),
+				CVC:      stripe.String(req.CVC),
+			},
+		}
+
+		pm, err := paymentmethod.New(pmParams)
+		if err != nil {
+			http.Error(w, `{"error":"stripe card rejected: `+err.Error()+`"}`, http.StatusBadRequest)
+			return
+		}
+
+		piParams := &stripe.PaymentIntentParams{
+			Amount:        stripe.Int64(amountCents),
+			Currency:      stripe.String(string(stripe.CurrencyEUR)),
+			PaymentMethod: stripe.String(pm.ID),
+			Confirm:       stripe.Bool(true),
+			AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
+				Enabled:        stripe.Bool(true),
+				AllowRedirects: stripe.String("never"),
+			},
+		}
+
+		_, err = paymentintent.New(piParams)
+		if err != nil {
+			http.Error(w, `{"error":"stripe payment failed: `+err.Error()+`"}`, http.StatusBadRequest)
+			return
+		}
 	}
 
 	order, err := h.orderRepo.CreateFromCart(userID, cart.ID, cart.Items, cart.TotalTTC)

@@ -10,6 +10,7 @@ type Config struct {
 	DBDriver    string
 	SSHPort     string
 	JWTSecret   string
+	StripeKey   string
 }
 
 func LoadConfig() *Config {
@@ -38,11 +39,14 @@ func LoadConfig() *Config {
 		jwtSecret = "super-secret-key-change-in-production"
 	}
 
+	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
+
 	return &Config{
 		ServerPort:  port,
 		DatabaseURL: dbURL,
 		DBDriver:    dbDriver,
 		SSHPort:     sshPort,
 		JWTSecret:   jwtSecret,
+		StripeKey:   stripeKey,
 	}
 }
