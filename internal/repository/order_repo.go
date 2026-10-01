@@ -32,13 +32,13 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 	defer tx.Rollback()
 
 	bID := utils.GenerateOrderID()
-	orderQuery := `INSERT INTO orders (business_id, user_id, cart_id, total_ttc, status) VALUES (?, ?, ?, ?, ?)`
-	res, err := tx.Exec(database.RebindQuery(orderQuery), bID, userID, cartID, totalTTC, string(models.OrderStatusPaid))
+	orderQuery := `INSERT INTO orders (business_id, user_id, cart_id, total_ttc, status) VALUES (?, ?, ?, ?, ?) RETURNING id`
+	
+	var orderID int64
+	err = tx.QueryRow(database.RebindQuery(orderQuery), bID, userID, cartID, totalTTC, string(models.OrderStatusPaid)).Scan(&orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert order: %w", err)
 	}
-
-	orderID, _ := res.LastInsertId()
 
 	for _, item := range items {
 		itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`
@@ -102,6 +102,8 @@ func (r *OrderRepository) GetUserOrders(userID int64) ([]models.Order, error) {
 					&p.ID, &p.Name, &p.Description, &p.Price, &p.Stock, &p.Category, &p.BusinessID); err == nil {
 					i.Product = &p
 					items = append(items, i)
+				} else {
+					fmt.Printf("Scan error 1: %v\n", err)
 				}
 			}
 			itemRows.Close()
