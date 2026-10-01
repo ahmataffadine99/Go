@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -30,7 +31,35 @@ func ValidateCVC(cvc string) bool {
 }
 
 func ValidateExpiry(expiry string) bool {
-	return len(expiry) == 5 && expiry[2] == '/'
+	if len(expiry) != 5 || expiry[2] != '/' {
+		return false
+	}
+
+	monthStr := expiry[:2]
+	yearStr := "20" + expiry[3:]
+
+	month, err := strconv.Atoi(monthStr)
+	if err != nil || month < 1 || month > 12 {
+		return false
+	}
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		return false
+	}
+
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
+	if year < currentYear {
+		return false
+	}
+	if year == currentYear && month < currentMonth {
+		return false
+	}
+
+	return true
 }
 
 var ErrInvalidInput = errors.New("invalid input data")
