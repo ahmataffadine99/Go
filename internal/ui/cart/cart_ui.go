@@ -84,9 +84,9 @@ func (c *CartClient) RunCartMenu() error {
 		case "add":
 			c.runAddItem()
 		case "update":
-			c.runUpdateItem()
+			c.runUpdateItem(cart)
 		case "remove":
-			c.runRemoveItem()
+			c.runRemoveItem(cart)
 		case "pay":
 			success := c.runPay(cart)
 			if success {
@@ -130,15 +130,42 @@ func (c *CartClient) displayCart(cart *models.Cart) {
 	fmt.Println(totalStyle.Render(fmt.Sprintf("Total TTC: %.2f €", cart.TotalTTC)))
 }
 
+func (c *CartClient) fetchAllProducts() ([]models.Product, error) {
+	resp, err := http.Get(c.BaseURL + "/api/products")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var products []models.Product
+	if err := json.NewDecoder(resp.Body).Decode(&products); err != nil {
+		return nil, err
+	}
+	return products, nil
+}
+
 func (c *CartClient) runAddItem() {
-	var productIDStr string
+	products, err := c.fetchAllProducts()
+	if err != nil || len(products) == 0 {
+		fmt.Println(errorStyle.Render("Aucun produit disponible."))
+		return
+	}
+
+	var productOptions []huh.Option[int]
+	for _, p := range products {
+		label := fmt.Sprintf("%s - %s (%.2f €) | Stock: %d", p.BusinessID, p.Name, p.Price, p.Stock)
+		productOptions = append(productOptions, huh.NewOption(label, int(p.ID)))
+	}
+
+	var productID int
 	var quantityStr string
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().
-				Title("ID du produit (numéro)").
-				Value(&productIDStr),
+			huh.NewSelect[int]().
+				Title("Choisissez un produit à ajouter").
+				Options(productOptions...).
+				Value(&productID),
 			huh.NewInput().
 				Title("Quantité").
 				Value(&quantityStr),
@@ -149,8 +176,7 @@ func (c *CartClient) runAddItem() {
 		return
 	}
 
-	var productID, quantity int
-	fmt.Sscanf(productIDStr, "%d", &productID)
+	var quantity int
 	fmt.Sscanf(quantityStr, "%d", &quantity)
 
 	payload, _ := json.Marshal(map[string]int{
@@ -174,15 +200,26 @@ func (c *CartClient) runAddItem() {
 	fmt.Println(successStyle.Render("Produit ajouté avec succès !"))
 }
 
-func (c *CartClient) runUpdateItem() {
-	var productIDStr string
+func (c *CartClient) runUpdateItem(cart *models.Cart) {
+	if len(cart.Items) == 0 {
+		return
+	}
+
+	var itemOptions []huh.Option[int]
+	for _, item := range cart.Items {
+		label := fmt.Sprintf("Produit ID %d (Qté actuelle: %d)", item.ProductID, item.Quantity)
+		itemOptions = append(itemOptions, huh.NewOption(label, int(item.ProductID)))
+	}
+
+	var productID int
 	var quantityStr string
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().
-				Title("ID du produit à modifier").
-				Value(&productIDStr),
+			huh.NewSelect[int]().
+				Title("Quel produit modifier ?").
+				Options(itemOptions...).
+				Value(&productID),
 			huh.NewInput().
 				Title("Nouvelle quantité").
 				Value(&quantityStr),
@@ -193,8 +230,7 @@ func (c *CartClient) runUpdateItem() {
 		return
 	}
 
-	var productID, quantity int
-	fmt.Sscanf(productIDStr, "%d", &productID)
+	var quantity int
 	fmt.Sscanf(quantityStr, "%d", &quantity)
 
 	payload, _ := json.Marshal(map[string]int{
@@ -218,23 +254,31 @@ func (c *CartClient) runUpdateItem() {
 	fmt.Println(successStyle.Render("Quantité modifiée !"))
 }
 
-func (c *CartClient) runRemoveItem() {
-	var productIDStr string
+func (c *CartClient) runRemoveItem(cart *models.Cart) {
+	if len(cart.Items) == 0 {
+		return
+	}
+
+	var itemOptions []huh.Option[int]
+	for _, item := range cart.Items {
+		label := fmt.Sprintf("Produit ID %d (Qté actuelle: %d)", item.ProductID, item.Quantity)
+		itemOptions = append(itemOptions, huh.NewOption(label, int(item.ProductID)))
+	}
+
+	var productID int
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().
-				Title("ID du produit à retirer").
-				Value(&productIDStr),
+			huh.NewSelect[int]().
+				Title("Produit à retirer").
+				Options(itemOptions...).
+				Value(&productID),
 		),
 	)
 
 	if err := form.Run(); err != nil {
 		return
 	}
-
-	var productID int
-	fmt.Sscanf(productIDStr, "%d", &productID)
 
 	endpoint := fmt.Sprintf("/api/cart/items?product_id=%d", productID)
 	resp, err := c.doAuthRequest(http.MethodDelete, endpoint, nil)
