@@ -10,16 +10,19 @@ import (
 
 	"ecommerce-cli/internal/models"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type ProductClient struct {
 	BaseURL string
+	In      io.Reader
+	Out     io.Writer
 }
 
-func NewProductClient(baseURL string) *ProductClient {
-	return &ProductClient{BaseURL: baseURL}
+func NewProductClient(baseURL string, in io.Reader, out io.Writer) *ProductClient {
+	return &ProductClient{BaseURL: baseURL, In: in, Out: out}
 }
 
 var (
@@ -57,8 +60,8 @@ func (c *ProductClient) RunProductSearchMenu() error {
 		),
 	)
 
-	fmt.Println(headerStyle.Render("Recherche de Produits"))
-	if err := form.Run(); err != nil {
+	fmt.Fprintln(c.Out, headerStyle.Render("Recherche de Produits"))
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return err
 	}
 
@@ -79,29 +82,29 @@ func (c *ProductClient) RunProductSearchMenu() error {
 	reqURL := fmt.Sprintf("%s/api/products?%s", c.BaseURL, params.Encode())
 	resp, err := http.Get(reqURL)
 	if err != nil {
-		fmt.Println("Erreur lors de la récupération des produits.")
+		fmt.Fprintln(c.Out, "Erreur lors de la récupération des produits.")
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println("Erreur serveur:", string(body))
+		fmt.Fprintln(c.Out, "Erreur serveur:", string(body))
 		return fmt.Errorf("search failed")
 	}
 
 	var products []models.Product
 	if err := json.NewDecoder(resp.Body).Decode(&products); err != nil {
-		fmt.Println("Erreur de lecture des données.")
+		fmt.Fprintln(c.Out, "Erreur de lecture des données.")
 		return err
 	}
 
 	if len(products) == 0 {
-		fmt.Println("\nAucun produit trouvé correspondant à vos critères.")
+		fmt.Fprintln(c.Out, "\nAucun produit trouvé correspondant à vos critères.")
 		return nil
 	}
 
-	fmt.Printf("\n--- %d Produit(s) trouvé(s) ---\n\n", len(products))
+	fmt.Fprintf(c.Out, "\n--- %d Produit(s) trouvé(s) ---\n\n", len(products))
 
 	for _, p := range products {
 		priceTTC := p.Price
@@ -115,7 +118,7 @@ func (c *ProductClient) RunProductSearchMenu() error {
 			p.Stock,
 			priceStyle.Render(fmt.Sprintf("%.2f €", priceTTC)),
 		)
-		fmt.Println(cardStyle.Render(cardContent))
+		fmt.Fprintln(c.Out, cardStyle.Render(cardContent))
 	}
 
 	return nil

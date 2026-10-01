@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"ecommerce-cli/internal/app"
+
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-	bm "github.com/charmbracelet/wish/bubbletea"
 	lm "github.com/charmbracelet/wish/logging"
 )
 
@@ -20,11 +20,19 @@ const host = "0.0.0.0"
 const port = 2222
 
 func main() {
+	baseURL := "http://localhost:8080"
+	
 	s, err := wish.NewServer(
 		wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
 		wish.WithHostKeyPath(".ssh/term_info_ed25519"),
 		wish.WithMiddleware(
-			bm.Middleware(teaHandler),
+			func(h ssh.Handler) ssh.Handler {
+				return func(s ssh.Session) {
+					// We pass the SSH session (which acts as io.Reader and io.Writer) to our app!
+					app.RunClientApp(baseURL, s, s)
+					h(s)
+				}
+			},
 			lm.Middleware(),
 		),
 	)
@@ -49,34 +57,4 @@ func main() {
 		log.Fatalln(err)
 	}
 	_ = ctx
-}
-
-func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	m := sshModel{
-		term: s.User(),
-	}
-	return m, []tea.ProgramOption{tea.WithAltScreen()}
-}
-
-type sshModel struct {
-	term string
-}
-
-func (m sshModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m sshModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		}
-	}
-	return m, nil
-}
-
-func (m sshModel) View() string {
-	return fmt.Sprintf("Bienvenue sur le serveur SSH E-Commerce CLI !\n\nAppuyez sur 'q' pour vous déconnecter.\n")
 }

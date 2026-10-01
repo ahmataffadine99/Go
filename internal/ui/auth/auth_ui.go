@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -16,10 +17,12 @@ type AuthClient struct {
 	Token   string
 	Email   string
 	Role    string
+	In      io.Reader
+	Out     io.Writer
 }
 
-func NewAuthClient(baseURL string) *AuthClient {
-	return &AuthClient{BaseURL: baseURL}
+func NewAuthClient(baseURL string, in io.Reader, out io.Writer) *AuthClient {
+	return &AuthClient{BaseURL: baseURL, In: in, Out: out}
 }
 
 var (
@@ -42,10 +45,10 @@ func (c *AuthClient) RunLoginForm() error {
 				EchoMode(huh.EchoModePassword).
 				Value(&password),
 		),
-	)
+	).WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out))
 
-	fmt.Println(titleStyle.Render("Connexion Utilisateur"))
-	if err := form.Run(); err != nil {
+	fmt.Fprintln(c.Out, titleStyle.Render("Connexion Utilisateur"))
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return err
 	}
 
@@ -56,14 +59,14 @@ func (c *AuthClient) RunLoginForm() error {
 
 	resp, err := http.Post(c.BaseURL+"/api/auth/login", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur de connexion au serveur Backend HTTP"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur de connexion au serveur Backend HTTP"))
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Echec de la connexion: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Echec de la connexion: " + string(body)))
 		return fmt.Errorf("login failed")
 	}
 
@@ -78,7 +81,7 @@ func (c *AuthClient) RunLoginForm() error {
 				c.Role = role
 			}
 		}
-		fmt.Println(successStyle.Render("Connexion réussie ! Token enregistré."))
+		fmt.Fprintln(c.Out, successStyle.Render("Connexion réussie ! Token enregistré."))
 	}
 
 	return nil
@@ -100,8 +103,8 @@ func (c *AuthClient) RunRegisterForm() error {
 		),
 	)
 
-	fmt.Println(titleStyle.Render("Inscription"))
-	if err := form.Run(); err != nil {
+	fmt.Fprintln(c.Out, titleStyle.Render("Inscription"))
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return err
 	}
 
@@ -112,14 +115,14 @@ func (c *AuthClient) RunRegisterForm() error {
 
 	resp, err := http.Post(c.BaseURL+"/api/auth/register", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur de connexion au serveur Backend HTTP"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur de connexion au serveur Backend HTTP"))
 		return err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
-		fmt.Println(errorStyle.Render("Erreur lors de l'inscription: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur lors de l'inscription: " + string(body)))
 		return fmt.Errorf("registration failed")
 	}
 
@@ -131,7 +134,7 @@ func (c *AuthClient) RunRegisterForm() error {
 		code = codeVal
 	}
 
-	fmt.Println(successStyle.Render(fmt.Sprintf("Inscription réussie ! Votre code de confirmation est : %s", code)))
+	fmt.Fprintln(c.Out, successStyle.Render(fmt.Sprintf("Inscription réussie ! Votre code de confirmation est : %s", code)))
 	return c.RunConfirmFormWithEmail(email, code)
 }
 
@@ -150,8 +153,8 @@ func (c *AuthClient) RunConfirmFormWithEmail(defaultEmail, defaultCode string) e
 		),
 	)
 
-	fmt.Println(titleStyle.Render("Confirmation de compte"))
-	if err := form.Run(); err != nil {
+	fmt.Fprintln(c.Out, titleStyle.Render("Confirmation de compte"))
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return err
 	}
 
@@ -162,18 +165,18 @@ func (c *AuthClient) RunConfirmFormWithEmail(defaultEmail, defaultCode string) e
 
 	resp, err := http.Post(c.BaseURL+"/api/auth/confirm", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Confirmation échouée: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Confirmation échouée: " + string(body)))
 		return fmt.Errorf("confirmation failed")
 	}
 
-	fmt.Println(successStyle.Render("Compte confirmé avec succès ! Vous pouvez maintenant vous connecter."))
+	fmt.Fprintln(c.Out, successStyle.Render("Compte confirmé avec succès ! Vous pouvez maintenant vous connecter."))
 	return nil
 }
 
@@ -192,8 +195,8 @@ func (c *AuthClient) RunResetPasswordForm() error {
 		),
 	)
 
-	fmt.Println(titleStyle.Render("Réinitialisation du mot de passe"))
-	if err := form.Run(); err != nil {
+	fmt.Fprintln(c.Out, titleStyle.Render("Réinitialisation du mot de passe"))
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return err
 	}
 
@@ -204,17 +207,17 @@ func (c *AuthClient) RunResetPasswordForm() error {
 
 	resp, err := http.Post(c.BaseURL+"/api/auth/reset-password", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Echec réinitialisation: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Echec réinitialisation: " + string(body)))
 		return fmt.Errorf("reset failed")
 	}
 
-	fmt.Println(successStyle.Render("Mot de passe réinitialisé avec succès !"))
+	fmt.Fprintln(c.Out, successStyle.Render("Mot de passe réinitialisé avec succès !"))
 	return nil
 }

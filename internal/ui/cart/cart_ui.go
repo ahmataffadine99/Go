@@ -9,6 +9,7 @@ import (
 
 	"ecommerce-cli/internal/models"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -16,10 +17,12 @@ import (
 type CartClient struct {
 	BaseURL string
 	Token   string
+	In      io.Reader
+	Out     io.Writer
 }
 
-func NewCartClient(baseURL string) *CartClient {
-	return &CartClient{BaseURL: baseURL}
+func NewCartClient(baseURL string, in io.Reader, out io.Writer) *CartClient {
+	return &CartClient{BaseURL: baseURL, In: in, Out: out}
 }
 
 var (
@@ -47,7 +50,7 @@ func (c *CartClient) RunCartMenu() error {
 	for {
 		cart, err := c.fetchCart()
 		if err != nil {
-			fmt.Println(errorStyle.Render("Erreur de récupération du panier: " + err.Error()))
+			fmt.Fprintln(c.Out, errorStyle.Render("Erreur de récupération du panier: " + err.Error()))
 			return err
 		}
 
@@ -76,7 +79,7 @@ func (c *CartClient) RunCartMenu() error {
 			),
 		)
 
-		if err := form.Run(); err != nil {
+		if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 			return nil
 		}
 
@@ -117,17 +120,17 @@ func (c *CartClient) fetchCart() (*models.Cart, error) {
 }
 
 func (c *CartClient) displayCart(cart *models.Cart) {
-	fmt.Println(headerStyle.Render("\n=== Votre Panier ==="))
+	fmt.Fprintln(c.Out, headerStyle.Render("\n=== Votre Panier ==="))
 	if len(cart.Items) == 0 {
-		fmt.Println("Votre panier est actuellement vide.")
+		fmt.Fprintln(c.Out, "Votre panier est actuellement vide.")
 		return
 	}
 
 	for _, item := range cart.Items {
 		content := fmt.Sprintf("Produit ID: %d | Quantité: %d", item.ProductID, item.Quantity)
-		fmt.Println(itemStyle.Render(content))
+		fmt.Fprintln(c.Out, itemStyle.Render(content))
 	}
-	fmt.Println(totalStyle.Render(fmt.Sprintf("Total TTC: %.2f €", cart.TotalTTC)))
+	fmt.Fprintln(c.Out, totalStyle.Render(fmt.Sprintf("Total TTC: %.2f €", cart.TotalTTC)))
 }
 
 func (c *CartClient) fetchAllProducts() ([]models.Product, error) {
@@ -147,7 +150,7 @@ func (c *CartClient) fetchAllProducts() ([]models.Product, error) {
 func (c *CartClient) runAddItem() {
 	products, err := c.fetchAllProducts()
 	if err != nil || len(products) == 0 {
-		fmt.Println(errorStyle.Render("Aucun produit disponible."))
+		fmt.Fprintln(c.Out, errorStyle.Render("Aucun produit disponible."))
 		return
 	}
 
@@ -172,7 +175,7 @@ func (c *CartClient) runAddItem() {
 		),
 	)
 
-	if err := form.Run(); err != nil {
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return
 	}
 
@@ -186,18 +189,18 @@ func (c *CartClient) runAddItem() {
 
 	resp, err := c.doAuthRequest(http.MethodPost, "/api/cart/add", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
 		return
 	}
 
-	fmt.Println(successStyle.Render("Produit ajouté avec succès !"))
+	fmt.Fprintln(c.Out, successStyle.Render("Produit ajouté avec succès !"))
 }
 
 func (c *CartClient) runUpdateItem(cart *models.Cart) {
@@ -226,7 +229,7 @@ func (c *CartClient) runUpdateItem(cart *models.Cart) {
 		),
 	)
 
-	if err := form.Run(); err != nil {
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return
 	}
 
@@ -240,18 +243,18 @@ func (c *CartClient) runUpdateItem(cart *models.Cart) {
 	endpoint := fmt.Sprintf("/api/cart/item?product_id=%d", productID)
 	resp, err := c.doAuthRequest(http.MethodPut, endpoint, bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
 		return
 	}
 
-	fmt.Println(successStyle.Render("Quantité modifiée !"))
+	fmt.Fprintln(c.Out, successStyle.Render("Quantité modifiée !"))
 }
 
 func (c *CartClient) runRemoveItem(cart *models.Cart) {
@@ -276,25 +279,25 @@ func (c *CartClient) runRemoveItem(cart *models.Cart) {
 		),
 	)
 
-	if err := form.Run(); err != nil {
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return
 	}
 
 	endpoint := fmt.Sprintf("/api/cart/item?product_id=%d", productID)
 	resp, err := c.doAuthRequest(http.MethodDelete, endpoint, nil)
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
 		return
 	}
 
-	fmt.Println(successStyle.Render("Produit retiré du panier !"))
+	fmt.Fprintln(c.Out, successStyle.Render("Produit retiré du panier !"))
 }
 
 func (c *CartClient) runPay(cart *models.Cart) bool {
@@ -308,7 +311,7 @@ func (c *CartClient) runPay(cart *models.Cart) bool {
 		),
 	)
 
-	if err := form.Run(); err != nil {
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
 		return false
 	}
 
@@ -320,17 +323,17 @@ func (c *CartClient) runPay(cart *models.Cart) bool {
 
 	resp, err := c.doAuthRequest(http.MethodPost, "/api/cart/pay", bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println(errorStyle.Render("Erreur réseau"))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Println(errorStyle.Render("Paiement refusé: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Paiement refusé: " + string(body)))
 		return false
 	}
 
-	fmt.Println(successStyle.Render("Paiement accepté ! Commande validée."))
+	fmt.Fprintln(c.Out, successStyle.Render("Paiement accepté ! Commande validée."))
 	return true
 }

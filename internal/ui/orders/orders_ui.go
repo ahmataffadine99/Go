@@ -9,6 +9,7 @@ import (
 
 	"ecommerce-cli/internal/models"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -23,9 +24,11 @@ var (
 type OrderClient struct {
 	BaseURL string
 	Token   string
+	In      io.Reader
+	Out     io.Writer
 }
 
-func NewOrderClient(baseURL, token string) *OrderClient {
+func NewOrderClient(baseURL, token string, in io.Reader, out io.Writer) *OrderClient {
 	return &OrderClient{
 		BaseURL: baseURL,
 		Token:   token,
@@ -62,16 +65,16 @@ func (c *OrderClient) fetchOrders() ([]models.Order, error) {
 
 func (c *OrderClient) RunOrdersMenu() {
 	for {
-		fmt.Println(titleStyle.Render("=== Mes Commandes ==="))
+		fmt.Fprintln(c.Out, titleStyle.Render("=== Mes Commandes ==="))
 		
 		orders, err := c.fetchOrders()
 		if err != nil {
-			fmt.Println(errorStyle.Render("Erreur: Impossible de récupérer vos commandes."))
+			fmt.Fprintln(c.Out, errorStyle.Render("Erreur: Impossible de récupérer vos commandes."))
 			return
 		}
 
 		if len(orders) == 0 {
-			fmt.Println(infoStyle.Render("Vous n'avez passé aucune commande pour le moment."))
+			fmt.Fprintln(c.Out, infoStyle.Render("Vous n'avez passé aucune commande pour le moment."))
 		} else {
 			for _, o := range orders {
 				dateStr := o.CreatedAt.Format("02/01/2006 à 15:04")
@@ -91,7 +94,7 @@ func (c *OrderClient) RunOrdersMenu() {
 				if o.CancelReason != "" {
 					content += fmt.Sprintf("\n\nRaison (si annulée): %s", o.CancelReason)
 				}
-				fmt.Println(orderStyle.Render(content))
+				fmt.Fprintln(c.Out, orderStyle.Render(content))
 			}
 		}
 
@@ -107,7 +110,7 @@ func (c *OrderClient) RunOrdersMenu() {
 			),
 		)
 
-		if err := form.Run(); err != nil || action == "back" {
+		if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil || action == "back" {
 			return
 		}
 	}
