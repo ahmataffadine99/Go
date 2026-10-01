@@ -33,7 +33,7 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 
 	bID := utils.GenerateOrderID()
 	orderQuery := `INSERT INTO orders (business_id, user_id, cart_id, total_ttc, status) VALUES (?, ?, ?, ?, ?)`
-	res, err := tx.Exec(orderQuery, bID, userID, cartID, totalTTC, string(models.OrderStatusPaid))
+	res, err := tx.Exec(database.RebindQuery(orderQuery), bID, userID, cartID, totalTTC, string(models.OrderStatusPaid))
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert order: %w", err)
 	}
@@ -42,7 +42,7 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 
 	for _, item := range items {
 		itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`
-		_, err := tx.Exec(itemQuery, orderID, item.ProductID, item.Quantity, item.Product.Price)
+		_, err := tx.Exec(database.RebindQuery(itemQuery), orderID, item.ProductID, item.Quantity, item.Product.Price)
 		if err != nil {
 			return nil, fmt.Errorf("failed to insert order item: %w", err)
 		}
