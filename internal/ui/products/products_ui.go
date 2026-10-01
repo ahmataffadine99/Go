@@ -106,7 +106,8 @@ func (c *ProductClient) RunProductSearchMenu() error {
 	for _, p := range products {
 		priceTTC := p.Price
 		cardContent := fmt.Sprintf(
-			"%s [%s]\n%s\nCatégorie: %s | Stock: %d\nPrix TTC: %s",
+			"ID: %d | %s [%s]\n%s\nCatégorie: %s | Stock: %d\nPrix TTC: %s",
+			p.ID,
 			titleStyle.Render(p.Name),
 			codeStyle.Render(p.BusinessID),
 			p.Description,

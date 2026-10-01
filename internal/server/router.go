@@ -18,7 +18,7 @@ func NewRouter(db *sql.DB, driverName string) http.Handler {
 
 	authH := handlers.NewAuthHandler(userRepo)
 	prodH := handlers.NewProductHandler(productRepo)
-	cartH := handlers.NewCartHandler(cartRepo, orderRepo)
+	cartH := handlers.NewCartHandler(cartRepo, orderRepo, productRepo)
 	orderH := handlers.NewOrderHandler(orderRepo, userRepo)
 	userH := handlers.NewUserHandler(userRepo)
 

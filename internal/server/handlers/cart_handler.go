@@ -11,12 +11,13 @@ import (
 )
 
 type CartHandler struct {
-	cartRepo  *repository.CartRepository
-	orderRepo *repository.OrderRepository
+	cartRepo    *repository.CartRepository
+	orderRepo   *repository.OrderRepository
+	productRepo *repository.ProductRepository
 }
 
-func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository) *CartHandler {
-	return &CartHandler{cartRepo: cartRepo, orderRepo: orderRepo}
+func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository) *CartHandler {
+	return &CartHandler{cartRepo: cartRepo, orderRepo: orderRepo, productRepo: productRepo}
 }
 
 func (h *CartHandler) GetCart(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +53,25 @@ func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 	var req models.AddToCartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ProductID <= 0 || req.Quantity <= 0 {
 		http.Error(w, `{"error":"invalid item payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	product, err := h.productRepo.GetByID(req.ProductID)
+	if err != nil {
+		http.Error(w, `{"error":"product not found"}`, http.StatusNotFound)
+		return
+	}
+
+	currentQty := 0
+	for _, item := range cart.Items {
+		if item.ProductID == req.ProductID {
+			currentQty = item.Quantity
+			break
+		}
+	}
+
+	if product.Stock < currentQty+req.Quantity {
+		http.Error(w, `{"error":"insufficient stock"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -91,6 +111,18 @@ func (h *CartHandler) UpdateOrRemoveItem(w http.ResponseWriter, r *http.Request)
 			http.Error(w, `{"error":"invalid payload"}`, http.StatusBadRequest)
 			return
 		}
+
+		product, err := h.productRepo.GetByID(prodID)
+		if err != nil {
+			http.Error(w, `{"error":"product not found"}`, http.StatusNotFound)
+			return
+		}
+
+		if product.Stock < req.Quantity {
+			http.Error(w, `{"error":"insufficient stock"}`, http.StatusBadRequest)
+			return
+		}
+
 		if err := h.cartRepo.SetItemQuantity(cart.ID, prodID, req.Quantity); err != nil {
 			http.Error(w, `{"error":"failed to update quantity"}`, http.StatusInternalServerError)
 			return
