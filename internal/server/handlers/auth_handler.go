@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"strings"
 
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/repository"
@@ -29,6 +31,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	confirmCode := utils.GenerateConfirmationCode()
 	user := &models.User{
 		Email:            req.Email,
@@ -64,7 +67,10 @@ func (h *AuthHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.Code = strings.ToUpper(strings.TrimSpace(req.Code))
 	if err := h.userRepo.ConfirmUser(req.Email, req.Code); err != nil {
+		log.Printf("Confirmation error: %v", err)
 		http.Error(w, `{"error":"invalid confirmation code or email"}`, http.StatusBadRequest)
 		return
 	}
@@ -85,9 +91,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	user, err := h.userRepo.GetByEmail(req.Email)
 	if err != nil || !utils.VerifyPassword(req.Password, user.PasswordHash) {
 		http.Error(w, `{"error":"invalid credentials"}`, http.StatusUnauthorized)
+		return
+	}
+
+	if !user.IsConfirmed {
+		http.Error(w, `{"error":"account not confirmed"}`, http.StatusForbidden)
 		return
 	}
 
@@ -112,6 +124,7 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	newHash := utils.HashPassword(req.NewPassword)
 	if err := h.userRepo.UpdatePassword(req.Email, newHash); err != nil {
 		http.Error(w, `{"error":"email not found"}`, http.StatusNotFound)

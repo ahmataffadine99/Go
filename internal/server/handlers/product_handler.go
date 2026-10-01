@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -37,6 +38,7 @@ func (h *ProductHandler) SearchOrList(w http.ResponseWriter, r *http.Request) {
 
 	products, err := h.productRepo.Search(filter)
 	if err != nil {
+		log.Printf("Failed to search products: %v", err)
 		http.Error(w, `{"error":"failed to query products"}`, http.StatusInternalServerError)
 		return
 	}

@@ -12,7 +12,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+var CurrentDriver string
+
 func InitDB(driverName, dataSourceName string) (*sql.DB, error) {
+	CurrentDriver = driverName
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -55,8 +58,8 @@ func RunMigrations(db *sql.DB, schemaPath string) error {
 	return nil
 }
 
-func RebindQuery(driverName, query string) string {
-	if driverName != "postgres" {
+func RebindQuery(query string) string {
+	if CurrentDriver != "postgres" {
 		return query
 	}
 	var b strings.Builder

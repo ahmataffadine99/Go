@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/utils"
 )
@@ -47,7 +48,7 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 		}
 	}
 
-	_, err = tx.Exec("UPDATE carts SET status = 'completed' WHERE id = ?", cartID)
+	_, err = tx.Exec(database.RebindQuery("UPDATE carts SET status = 'completed' WHERE id = ?"), cartID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 func (r *OrderRepository) GetUserOrders(userID int64) ([]models.Order, error) {
 	query := `SELECT id, business_id, user_id, cart_id, total_ttc, status, cancel_reason, created_at, updated_at 
 	          FROM orders WHERE user_id = ? ORDER BY id DESC`
-	rows, err := r.db.Query(query, userID)
+	rows, err := r.db.Query(database.RebindQuery(query), userID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func (r *OrderRepository) GetUserOrders(userID int64) ([]models.Order, error) {
 func (r *OrderRepository) ListAllOrders() ([]models.Order, error) {
 	query := `SELECT id, business_id, user_id, cart_id, total_ttc, status, cancel_reason, created_at, updated_at 
 	          FROM orders ORDER BY id DESC`
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(database.RebindQuery(query))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +117,7 @@ func (r *OrderRepository) ListAllOrders() ([]models.Order, error) {
 
 func (r *OrderRepository) UpdateStatus(orderID int64, status models.OrderStatus, reason string) error {
 	query := `UPDATE orders SET status = ?, cancel_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
-	res, err := r.db.Exec(query, string(status), reason, orderID)
+	res, err := r.db.Exec(database.RebindQuery(query), string(status), reason, orderID)
 	if err != nil {
 		return err
 	}

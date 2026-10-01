@@ -13,7 +13,6 @@ func NewRouter(db *sql.DB, driverName string) http.Handler {
 
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
-	productRepo.SetDriverName(driverName)
 	cartRepo := repository.NewCartRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
 

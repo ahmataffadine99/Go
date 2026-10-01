@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/utils"
 )
@@ -20,14 +21,14 @@ func NewCartRepository(db *sql.DB) *CartRepository {
 func (r *CartRepository) GetOrCreateActiveCart(userID int64) (*models.Cart, error) {
 	query := `SELECT id, business_id, user_id, status, created_at, updated_at 
 	          FROM carts WHERE user_id = ? AND status = 'active'`
-	row := r.db.QueryRow(query, userID)
+	row := r.db.QueryRow(database.RebindQuery(query), userID)
 
 	var c models.Cart
 	err := row.Scan(&c.ID, &c.BusinessID, &c.UserID, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		bID := utils.GenerateCartID()
 		insertQ := `INSERT INTO carts (business_id, user_id, status) VALUES (?, ?, 'active')`
-		res, err := r.db.Exec(insertQ, bID, userID)
+		res, err := r.db.Exec(database.RebindQuery(insertQ), bID, userID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cart: %w", err)
 		}
@@ -54,10 +55,10 @@ func (r *CartRepository) GetOrCreateActiveCart(userID int64) (*models.Cart, erro
 
 func (r *CartRepository) AddOrUpdateItem(cartID, productID int64, quantity int) error {
 	var currentQty int
-	err := r.db.QueryRow("SELECT quantity FROM cart_items WHERE cart_id = ? AND product_id = ?", cartID, productID).Scan(&currentQty)
+	err := r.db.QueryRow(database.RebindQuery("SELECT quantity FROM cart_items WHERE cart_id = ? AND product_id = ?"), cartID, productID).Scan(&currentQty)
 
 	if err == sql.ErrNoRows {
-		_, err = r.db.Exec("INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)", cartID, productID, quantity)
+		_, err = r.db.Exec(database.RebindQuery("INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)"), cartID, productID, quantity)
 		return err
 	} else if err != nil {
 		return err
@@ -65,25 +66,25 @@ func (r *CartRepository) AddOrUpdateItem(cartID, productID int64, quantity int) 
 
 	newQty := currentQty + quantity
 	if newQty <= 0 {
-		_, err = r.db.Exec("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?", cartID, productID)
+		_, err = r.db.Exec(database.RebindQuery("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?"), cartID, productID)
 		return err
 	}
 
-	_, err = r.db.Exec("UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?", newQty, cartID, productID)
+	_, err = r.db.Exec(database.RebindQuery("UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?"), newQty, cartID, productID)
 	return err
 }
 
 func (r *CartRepository) SetItemQuantity(cartID, productID int64, quantity int) error {
 	if quantity <= 0 {
-		_, err := r.db.Exec("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?", cartID, productID)
+		_, err := r.db.Exec(database.RebindQuery("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?"), cartID, productID)
 		return err
 	}
-	_, err := r.db.Exec("UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?", quantity, cartID, productID)
+	_, err := r.db.Exec(database.RebindQuery("UPDATE cart_items SET quantity = ? WHERE cart_id = ? AND product_id = ?"), quantity, cartID, productID)
 	return err
 }
 
 func (r *CartRepository) RemoveItem(cartID, productID int64) error {
-	_, err := r.db.Exec("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?", cartID, productID)
+	_, err := r.db.Exec(database.RebindQuery("DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?"), cartID, productID)
 	return err
 }
 
@@ -94,7 +95,7 @@ func (r *CartRepository) GetCartItems(cartID int64) ([]models.CartItem, float64,
 	          JOIN products p ON ci.product_id = p.id
 	          WHERE ci.cart_id = ?`
 
-	rows, err := r.db.Query(query, cartID)
+	rows, err := r.db.Query(database.RebindQuery(query), cartID)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -119,7 +120,7 @@ func (r *CartRepository) GetCartItems(cartID int64) ([]models.CartItem, float64,
 }
 
 func (r *CartRepository) CloseCart(cartID int64) error {
-	_, err := r.db.Exec("UPDATE carts SET status = 'checkout' WHERE id = ?", cartID)
+	_, err := r.db.Exec(database.RebindQuery("UPDATE carts SET status = 'checkout' WHERE id = ?"), cartID)
 	return err
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 )
 
@@ -21,7 +22,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (r *UserRepository) Create(user *models.User) error {
 	query := `INSERT INTO users (email, password_hash, role, is_confirmed, confirmation_code) 
 	          VALUES (?, ?, ?, ?, ?)`
-	res, err := r.db.Exec(query, user.Email, user.PasswordHash, user.Role, user.IsConfirmed, user.ConfirmationCode)
+	res, err := r.db.Exec(database.RebindQuery(query), user.Email, user.PasswordHash, user.Role, user.IsConfirmed, user.ConfirmationCode)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -35,7 +36,7 @@ func (r *UserRepository) Create(user *models.User) error {
 func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	query := `SELECT id, email, password_hash, role, is_confirmed, confirmation_code, created_at 
 	          FROM users WHERE email = ?`
-	row := r.db.QueryRow(query, email)
+	row := r.db.QueryRow(database.RebindQuery(query), email)
 
 	var u models.User
 	var code sql.NullString
@@ -55,7 +56,7 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 	query := `SELECT id, email, password_hash, role, is_confirmed, confirmation_code, created_at 
 	          FROM users WHERE id = ?`
-	row := r.db.QueryRow(query, id)
+	row := r.db.QueryRow(database.RebindQuery(query), id)
 
 	var u models.User
 	var code sql.NullString
@@ -73,9 +74,9 @@ func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 }
 
 func (r *UserRepository) ConfirmUser(email, code string) error {
-	query := `UPDATE users SET is_confirmed = 1, confirmation_code = '' 
+	query := `UPDATE users SET is_confirmed = TRUE, confirmation_code = '' 
 	          WHERE email = ? AND confirmation_code = ?`
-	res, err := r.db.Exec(query, email, code)
+	res, err := r.db.Exec(database.RebindQuery(query), email, code)
 	if err != nil {
 		return err
 	}
@@ -88,7 +89,7 @@ func (r *UserRepository) ConfirmUser(email, code string) error {
 
 func (r *UserRepository) UpdatePassword(email, newPasswordHash string) error {
 	query := `UPDATE users SET password_hash = ? WHERE email = ?`
-	res, err := r.db.Exec(query, newPasswordHash, email)
+	res, err := r.db.Exec(database.RebindQuery(query), newPasswordHash, email)
 	if err != nil {
 		return err
 	}
@@ -101,7 +102,7 @@ func (r *UserRepository) UpdatePassword(email, newPasswordHash string) error {
 
 func (r *UserRepository) ListAll() ([]models.User, error) {
 	query := `SELECT id, email, role, is_confirmed, created_at FROM users ORDER BY id DESC`
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(database.RebindQuery(query))
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +120,6 @@ func (r *UserRepository) ListAll() ([]models.User, error) {
 }
 
 func (r *UserRepository) Delete(id int64) error {
-	_, err := r.db.Exec("DELETE FROM users WHERE id = ?", id)
+	_, err := r.db.Exec(database.RebindQuery("DELETE FROM users WHERE id = ?"), id)
 	return err
 }
