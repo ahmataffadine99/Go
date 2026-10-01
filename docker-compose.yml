@@ -27,6 +27,7 @@ services:
       DB_DRIVER: ${DB_DRIVER}
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
     depends_on:
       - db
 
