@@ -85,3 +85,7 @@ ssh localhost -p 2222
 
 ---
 *Projet universitaire réalisé dans le cadre de l'apprentissage du développement Backend et Système en langage Go.*
+
+**Développeurs :**
+- AHMAT ABDOULAYE AFFADINE
+- Elwardi Abderazzakh
