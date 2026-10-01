@@ -184,7 +184,7 @@ func (c *CartClient) runAddItem() {
 		"quantity":   quantity,
 	})
 
-	resp, err := c.doAuthRequest(http.MethodPost, "/api/cart/items", bytes.NewBuffer(payload))
+	resp, err := c.doAuthRequest(http.MethodPost, "/api/cart/add", bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Println(errorStyle.Render("Erreur réseau"))
 		return
@@ -237,7 +237,7 @@ func (c *CartClient) runUpdateItem(cart *models.Cart) {
 		"quantity": quantity,
 	})
 
-	endpoint := fmt.Sprintf("/api/cart/items?product_id=%d", productID)
+	endpoint := fmt.Sprintf("/api/cart/item?product_id=%d", productID)
 	resp, err := c.doAuthRequest(http.MethodPut, endpoint, bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Println(errorStyle.Render("Erreur réseau"))
@@ -280,7 +280,7 @@ func (c *CartClient) runRemoveItem(cart *models.Cart) {
 		return
 	}
 
-	endpoint := fmt.Sprintf("/api/cart/items?product_id=%d", productID)
+	endpoint := fmt.Sprintf("/api/cart/item?product_id=%d", productID)
 	resp, err := c.doAuthRequest(http.MethodDelete, endpoint, nil)
 	if err != nil {
 		fmt.Println(errorStyle.Render("Erreur réseau"))
