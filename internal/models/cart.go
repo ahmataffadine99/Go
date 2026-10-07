@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type CartItem struct {
 	ID        int64    `json:"id"`
 	CartID    int64    `json:"cart_id"`
@@ -17,8 +15,8 @@ type Cart struct {
 	Status     string     `json:"status"`
 	Items      []CartItem `json:"items"`
 	TotalTTC   float64    `json:"total_ttc"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	CreatedAt  string     `json:"created_at"`
+	UpdatedAt  string     `json:"updated_at"`
 }
 
 type AddToCartRequest struct {

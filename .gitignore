@@ -35,3 +35,8 @@ Thumbs.db
 
 # PDFs and Docs
 *.pdf
+presentation_soutenance.md
+
+# Local folders
+.ssh/
+scratch/

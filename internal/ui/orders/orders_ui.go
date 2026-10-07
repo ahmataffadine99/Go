@@ -77,7 +77,7 @@ func (c *OrderClient) RunOrdersMenu() {
 			fmt.Fprintln(c.Out, infoStyle.Render("Vous n'avez passé aucune commande pour le moment."))
 		} else {
 			for _, o := range orders {
-				dateStr := o.CreatedAt.Format("02/01/2006 à 15:04")
+				dateStr := o.CreatedAt
 				
 				var itemsStr []string
 				for _, item := range o.Items {

@@ -1,7 +1,5 @@
 package models
 
-import "time"
-
 type OrderStatus string
 
 const (
@@ -30,8 +28,8 @@ type Order struct {
 	Status       OrderStatus `json:"status"`
 	CancelReason string      `json:"cancel_reason,omitempty"`
 	Items        []OrderItem `json:"items,omitempty"`
-	CreatedAt    time.Time   `json:"created_at"`
-	UpdatedAt    time.Time   `json:"updated_at"`
+	CreatedAt    string      `json:"created_at"`
+	UpdatedAt    string      `json:"updated_at"`
 }
 
 type UpdateOrderStatusRequest struct {
