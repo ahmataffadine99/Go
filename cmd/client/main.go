@@ -1,12 +1,9 @@
 package main
 
 import (
-	"os"
-
-	"ecommerce-cli/internal/app"
+	"ecommerce-cli/cmd/client/cmd"
 )
 
 func main() {
-	baseURL := "http://localhost:8080"
-	app.RunClientApp(baseURL, os.Stdin, os.Stdout)
+	cmd.Execute()
 }
