@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"ecommerce-cli/internal/models"
 
@@ -38,6 +37,7 @@ func (c *ProductClient) RunProductSearchMenu() error {
 	var category string
 	var minPriceStr string
 	var maxPriceStr string
+	priceType := "ttc"
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -49,6 +49,13 @@ func (c *ProductClient) RunProductSearchMenu() error {
 				Title("Catégorie (optionnel)").
 				Placeholder("ex: Informatique, Accessoires...").
 				Value(&category),
+			huh.NewSelect[string]().
+				Title("Filtrer le prix en").
+				Options(
+					huh.NewOption("Prix TTC", "ttc"),
+					huh.NewOption("Prix HT", "ht"),
+				).
+				Value(&priceType),
 			huh.NewInput().
 				Title("Prix Minimum (€)").
 				Placeholder("0").
@@ -72,11 +79,15 @@ func (c *ProductClient) RunProductSearchMenu() error {
 	if category != "" {
 		params.Add("category", category)
 	}
+	suffix := ""
+	if priceType == "ttc" {
+		suffix = "_ttc"
+	}
 	if minPriceStr != "" {
-		params.Add("min_price", minPriceStr)
+		params.Add("min_price"+suffix, minPriceStr)
 	}
 	if maxPriceStr != "" {
-		params.Add("max_price", maxPriceStr)
+		params.Add("max_price"+suffix, maxPriceStr)
 	}
 
 	reqURL := fmt.Sprintf("%s/api/products?%s", c.BaseURL, params.Encode())
@@ -107,16 +118,16 @@ func (c *ProductClient) RunProductSearchMenu() error {
 	fmt.Fprintf(c.Out, "\n--- %d Produit(s) trouvé(s) ---\n\n", len(products))
 
 	for _, p := range products {
-		priceTTC := p.Price
 		cardContent := fmt.Sprintf(
-			"ID: %d | %s [%s]\n%s\nCatégorie: %s | Stock: %d\nPrix TTC: %s",
+			"ID: %d | %s [%s]\n%s\nCatégorie: %s | Stock: %d\nPrix HT: %.2f € | Prix TTC: %s",
 			p.ID,
 			titleStyle.Render(p.Name),
 			codeStyle.Render(p.BusinessID),
 			p.Description,
 			p.Category,
 			p.Stock,
-			priceStyle.Render(fmt.Sprintf("%.2f €", priceTTC)),
+			p.Price,
+			priceStyle.Render(fmt.Sprintf("%.2f €", p.PriceTTC)),
 		)
 		fmt.Fprintln(c.Out, cardStyle.Render(cardContent))
 	}
@@ -136,12 +147,4 @@ func (c *ProductClient) ListAllProducts() ([]models.Product, error) {
 		return nil, err
 	}
 	return products, nil
-}
-
-func parseOptionalFloat(s string) float64 {
-	val, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return 0
-	}
-	return val
 }

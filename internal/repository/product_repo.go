@@ -27,6 +27,7 @@ func (r *ProductRepository) Create(p *models.Product) error {
 	if err != nil {
 		return fmt.Errorf("failed to insert product: %w", err)
 	}
+	p.PriceTTC = models.ComputeTTC(p.Price)
 	return nil
 }
 
@@ -43,6 +44,7 @@ func (r *ProductRepository) GetByID(id int64) (*models.Product, error) {
 	if err != nil {
 		return nil, err
 	}
+	p.PriceTTC = models.ComputeTTC(p.Price)
 	return &p, nil
 }
 
@@ -71,6 +73,16 @@ func (r *ProductRepository) Search(filter models.ProductFilter) ([]models.Produc
 		args = append(args, filter.MaxPrice)
 	}
 
+	if filter.MinPriceTTC > 0 {
+		query += ` AND price * ? >= ?`
+		args = append(args, 1+models.TVARate, filter.MinPriceTTC-0.005)
+	}
+
+	if filter.MaxPriceTTC > 0 {
+		query += ` AND price * ? <= ?`
+		args = append(args, 1+models.TVARate, filter.MaxPriceTTC+0.005)
+	}
+
 	query += ` ORDER BY id DESC`
 
 	rows, err := r.db.Query(database.RebindQuery(query), args...)
@@ -85,6 +97,7 @@ func (r *ProductRepository) Search(filter models.ProductFilter) ([]models.Produc
 		if err := rows.Scan(&p.ID, &p.BusinessID, &p.Name, &p.Description, &p.Price, &p.Category, &p.Stock, &p.CreatedAt); err != nil {
 			return nil, err
 		}
+		p.PriceTTC = models.ComputeTTC(p.Price)
 		products = append(products, p)
 	}
 	return products, nil

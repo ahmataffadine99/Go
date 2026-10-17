@@ -88,7 +88,7 @@ func (c *OrderClient) RunOrdersMenu() {
 					if item.Product != nil {
 						prodName = item.Product.Name
 					}
-					itemsStr = append(itemsStr, fmt.Sprintf("  - %s (x%d) : %.2f €", prodName, item.Quantity, item.UnitPrice))
+					itemsStr = append(itemsStr, fmt.Sprintf("  - %s (x%d) : %.2f € TTC l'unité", prodName, item.Quantity, item.UnitPrice))
 				}
 				
 				content := fmt.Sprintf("Commande #%d (Identifiant: %s)\nDate: %s\nStatut: %s\nTotal TTC: %.2f €\n\nProduits:\n%s",

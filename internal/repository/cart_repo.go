@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 
 	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
@@ -110,12 +111,13 @@ func (r *CartRepository) GetCartItems(cartID int64) ([]models.CartItem, float64,
 			&p.ID, &p.BusinessID, &p.Name, &p.Description, &p.Price, &p.Category, &p.Stock); err != nil {
 			return nil, 0, err
 		}
+		p.PriceTTC = models.ComputeTTC(p.Price)
 		ci.Product = &p
 		items = append(items, ci)
-		total += p.Price * float64(ci.Quantity)
+		total += p.PriceTTC * float64(ci.Quantity)
 	}
 
-	return items, total, nil
+	return items, math.Round(total*100) / 100, nil
 }
 
 func (r *CartRepository) CloseCart(cartID int64) error {

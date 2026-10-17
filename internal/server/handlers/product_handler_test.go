@@ -79,4 +79,15 @@ func TestProductSearch(t *testing.T) {
 	if len(priceRes) != 1 || priceRes[0].BusinessID != "PDT-222222" {
 		t.Fatalf("expected 1 product (Go Mouse), got %d", len(priceRes))
 	}
+
+	resp, err = http.Get(ts.URL + "/api/products?min_price_ttc=30.60&max_price_ttc=30.60")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK on TTC price search")
+	}
+
+	var ttcRes []models.Product
+	json.NewDecoder(resp.Body).Decode(&ttcRes)
+	if len(ttcRes) != 1 || ttcRes[0].PriceTTC != 30.60 {
+		t.Fatalf("expected 1 product with price TTC 30.60, got %d", len(ttcRes))
+	}
 }

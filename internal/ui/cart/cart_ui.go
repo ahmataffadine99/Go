@@ -126,10 +126,13 @@ func (c *CartClient) displayCart(cart *models.Cart) {
 		return
 	}
 
+	fmt.Fprintln(c.Out, "Panier "+cart.BusinessID)
 	for _, item := range cart.Items {
-		content := fmt.Sprintf("Produit ID: %d | Quantité: %d", item.ProductID, item.Quantity)
+		content := fmt.Sprintf("%s - %s\nQuantité: %d | Prix unitaire TTC: %.2f € | Sous-total: %.2f €",
+			item.Product.BusinessID, item.Product.Name, item.Quantity, item.Product.PriceTTC, item.Product.PriceTTC*float64(item.Quantity))
 		fmt.Fprintln(c.Out, itemStyle.Render(content))
 	}
+	fmt.Fprintln(c.Out, "Livraison: gratuite")
 	fmt.Fprintln(c.Out, totalStyle.Render(fmt.Sprintf("Total TTC: %.2f €", cart.TotalTTC)))
 }
 
@@ -156,7 +159,7 @@ func (c *CartClient) runAddItem() {
 
 	var productOptions []huh.Option[int]
 	for _, p := range products {
-		label := fmt.Sprintf("%s - %s (%.2f €) | Stock: %d", p.BusinessID, p.Name, p.Price, p.Stock)
+		label := fmt.Sprintf("%s - %s (%.2f € TTC) | Stock: %d", p.BusinessID, p.Name, p.PriceTTC, p.Stock)
 		productOptions = append(productOptions, huh.NewOption(label, int(p.ID)))
 	}
 
@@ -210,7 +213,7 @@ func (c *CartClient) runUpdateItem(cart *models.Cart) {
 
 	var itemOptions []huh.Option[int]
 	for _, item := range cart.Items {
-		label := fmt.Sprintf("Produit ID %d (Qté actuelle: %d)", item.ProductID, item.Quantity)
+		label := fmt.Sprintf("%s (Qté actuelle: %d)", item.Product.Name, item.Quantity)
 		itemOptions = append(itemOptions, huh.NewOption(label, int(item.ProductID)))
 	}
 
@@ -264,7 +267,7 @@ func (c *CartClient) runRemoveItem(cart *models.Cart) {
 
 	var itemOptions []huh.Option[int]
 	for _, item := range cart.Items {
-		label := fmt.Sprintf("Produit ID %d (Qté actuelle: %d)", item.ProductID, item.Quantity)
+		label := fmt.Sprintf("%s (Qté actuelle: %d)", item.Product.Name, item.Quantity)
 		itemOptions = append(itemOptions, huh.NewOption(label, int(item.ProductID)))
 	}
 
