@@ -5,8 +5,11 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(50) NOT NULL DEFAULT 'client',
     is_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
     confirmation_code VARCHAR(100),
+    reset_code VARCHAR(100) DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users ADD COLUMN reset_code VARCHAR(100) DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,

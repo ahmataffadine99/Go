@@ -181,17 +181,13 @@ func (c *AuthClient) RunConfirmFormWithEmail(defaultEmail, defaultCode string) e
 }
 
 func (c *AuthClient) RunResetPasswordForm() error {
-	var email, newPassword string
+	var email string
 
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Email du compte à réinitialiser").
 				Value(&email),
-			huh.NewInput().
-				Title("Nouveau mot de passe").
-				EchoMode(huh.EchoModePassword).
-				Value(&newPassword),
 		),
 	)
 
@@ -200,12 +196,40 @@ func (c *AuthClient) RunResetPasswordForm() error {
 		return err
 	}
 
-	payload, _ := json.Marshal(map[string]string{
+	payload, _ := json.Marshal(map[string]string{"email": email})
+	resp, err := http.Post(c.BaseURL+"/api/auth/forgot-password", "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
+		return err
+	}
+	resp.Body.Close()
+
+	fmt.Fprintln(c.Out, successStyle.Render("Si le compte existe, un code de réinitialisation a été envoyé par email."))
+
+	var code, newPassword string
+	form = huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Code reçu par email").
+				Value(&code),
+			huh.NewInput().
+				Title("Nouveau mot de passe").
+				EchoMode(huh.EchoModePassword).
+				Value(&newPassword),
+		),
+	)
+
+	if err := form.WithProgramOptions(tea.WithInput(c.In), tea.WithOutput(c.Out)).Run(); err != nil {
+		return err
+	}
+
+	payload, _ = json.Marshal(map[string]string{
 		"email":        email,
+		"code":         code,
 		"new_password": newPassword,
 	})
 
-	resp, err := http.Post(c.BaseURL+"/api/auth/reset-password", "application/json", bytes.NewBuffer(payload))
+	resp, err = http.Post(c.BaseURL+"/api/auth/reset-password", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Fprintln(c.Out, errorStyle.Render("Erreur réseau"))
 		return err

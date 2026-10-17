@@ -13,10 +13,11 @@ import (
 
 type AuthHandler struct {
 	userRepo *repository.UserRepository
+	secret   string
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository) *AuthHandler {
-	return &AuthHandler{userRepo: userRepo}
+func NewAuthHandler(userRepo *repository.UserRepository, secret string) *AuthHandler {
+	return &AuthHandler{userRepo: userRepo, secret: secret}
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -103,13 +104,35 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := utils.GenerateSimpleToken(user.ID, user.Role)
+	token := utils.GenerateToken(user.ID, user.Role, h.secret)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"token": token,
 		"user":  user,
 	})
+}
+
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req models.ForgotPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" {
+		http.Error(w, `{"error":"invalid payload"}`, http.StatusBadRequest)
+		return
+	}
+
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	code := utils.GenerateConfirmationCode()
+	if err := h.userRepo.SetResetCode(req.Email, code); err == nil {
+		log.Printf("[email] a: %s | objet: reinitialisation du mot de passe | code: %s", req.Email, code)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "if the account exists, a reset code has been sent by email"})
 }
 
 func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
@@ -119,15 +142,15 @@ func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.ResetPasswordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.NewPassword == "" {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Email == "" || req.Code == "" || req.NewPassword == "" {
 		http.Error(w, `{"error":"invalid payload"}`, http.StatusBadRequest)
 		return
 	}
 
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	newHash := utils.HashPassword(req.NewPassword)
-	if err := h.userRepo.UpdatePassword(req.Email, newHash); err != nil {
-		http.Error(w, `{"error":"email not found"}`, http.StatusNotFound)
+	req.Code = strings.ToUpper(strings.TrimSpace(req.Code))
+	if err := h.userRepo.ResetPassword(req.Email, req.Code, utils.HashPassword(req.NewPassword)); err != nil {
+		http.Error(w, `{"error":"invalid email or reset code"}`, http.StatusBadRequest)
 		return
 	}
 

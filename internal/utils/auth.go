@@ -1,7 +1,12 @@
 package utils
 
 import (
+	"crypto/hmac"
+	"crypto/pbkdf2"
+	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -10,17 +15,85 @@ import (
 	"time"
 )
 
+const (
+	pbkdf2Iterations = 100000
+	tokenDuration    = 24 * time.Hour
+)
+
+var ErrInvalidToken = errors.New("invalid token")
+
 func HashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(hash[:])
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		panic(err)
+	}
+	key, err := pbkdf2.Key(sha256.New, password, salt, pbkdf2Iterations, 32)
+	if err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(salt) + "$" + hex.EncodeToString(key)
 }
 
-func VerifyPassword(password, hash string) bool {
-	return HashPassword(password) == hash
+func VerifyPassword(password, stored string) bool {
+	parts := strings.Split(stored, "$")
+	if len(parts) != 2 {
+		return false
+	}
+	salt, err := hex.DecodeString(parts[0])
+	if err != nil {
+		return false
+	}
+	expected, err := hex.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	key, err := pbkdf2.Key(sha256.New, password, salt, pbkdf2Iterations, len(expected))
+	if err != nil {
+		return false
+	}
+	return subtle.ConstantTimeCompare(key, expected) == 1
 }
 
-func GenerateSimpleToken(userID int64, role string) string {
-	return fmt.Sprintf("token_%d_%s_%d", userID, role, time.Now().Unix())
+func GenerateToken(userID int64, role, secret string) string {
+	expires := time.Now().Add(tokenDuration).Unix()
+	payload := fmt.Sprintf("%d|%s|%d", userID, role, expires)
+	encoded := base64.RawURLEncoding.EncodeToString([]byte(payload))
+	return encoded + "." + sign(encoded, secret)
+}
+
+func ParseToken(token, secret string) (int64, string, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 2 {
+		return 0, "", ErrInvalidToken
+	}
+	if !hmac.Equal([]byte(parts[1]), []byte(sign(parts[0], secret))) {
+		return 0, "", ErrInvalidToken
+	}
+
+	raw, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return 0, "", ErrInvalidToken
+	}
+	fields := strings.Split(string(raw), "|")
+	if len(fields) != 3 {
+		return 0, "", ErrInvalidToken
+	}
+
+	userID, err := strconv.ParseInt(fields[0], 10, 64)
+	if err != nil {
+		return 0, "", ErrInvalidToken
+	}
+	expires, err := strconv.ParseInt(fields[2], 10, 64)
+	if err != nil || time.Now().Unix() > expires {
+		return 0, "", ErrInvalidToken
+	}
+	return userID, fields[1], nil
+}
+
+func sign(data, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(data))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
 func ValidateCardNumber(card string) bool {

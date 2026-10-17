@@ -83,9 +83,22 @@ func (r *UserRepository) ConfirmUser(email, code string) error {
 	return nil
 }
 
-func (r *UserRepository) UpdatePassword(email, newPasswordHash string) error {
-	query := `UPDATE users SET password_hash = ? WHERE email = ?`
-	res, err := r.db.Exec(database.RebindQuery(query), newPasswordHash, email)
+func (r *UserRepository) SetResetCode(email, code string) error {
+	query := `UPDATE users SET reset_code = ? WHERE email = ?`
+	res, err := r.db.Exec(database.RebindQuery(query), code, email)
+	if err != nil {
+		return err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) ResetPassword(email, code, newPasswordHash string) error {
+	query := `UPDATE users SET password_hash = ?, reset_code = '' WHERE email = ? AND reset_code = ? AND reset_code <> ''`
+	res, err := r.db.Exec(database.RebindQuery(query), newPasswordHash, email, code)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,7 @@ func TestAuthFlow(t *testing.T) {
 		role TEXT NOT NULL DEFAULT 'client',
 		is_confirmed BOOLEAN NOT NULL DEFAULT 0,
 		confirmation_code TEXT,
+		reset_code TEXT DEFAULT '',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 
@@ -89,10 +90,29 @@ func TestAuthFlow(t *testing.T) {
 	}
 
 	// 4. Réinitialisation mot de passe
+	body, _ = json.Marshal(map[string]string{"email": "test@example.com"})
+	resp, err = http.Post(ts.URL+"/api/auth/forgot-password", "application/json", bytes.NewBuffer(body))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK on forgot password, got status %v", resp.Status)
+	}
+
+	var resetCode string
+	if err := db.QueryRow("SELECT reset_code FROM users WHERE email = ?", "test@example.com").Scan(&resetCode); err != nil || resetCode == "" {
+		t.Fatalf("expected reset code to be stored")
+	}
+
 	resetPayload := map[string]string{
 		"email":        "test@example.com",
+		"code":         "WRONG1",
 		"new_password": "newpassword456",
 	}
+	body, _ = json.Marshal(resetPayload)
+	resp, err = http.Post(ts.URL+"/api/auth/reset-password", "application/json", bytes.NewBuffer(body))
+	if err != nil || resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 on reset with wrong code, got status %v", resp.Status)
+	}
+
+	resetPayload["code"] = resetCode
 	body, _ = json.Marshal(resetPayload)
 
 	resp, err = http.Post(ts.URL+"/api/auth/reset-password", "application/json", bytes.NewBuffer(body))
@@ -107,5 +127,24 @@ func TestAuthFlow(t *testing.T) {
 	resp, err = http.Post(ts.URL+"/api/auth/login", "application/json", bytes.NewBuffer(body))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 OK on login with new password, got status %v", resp.Status)
+	}
+}
+
+func TestForgedTokenRejected(t *testing.T) {
+	db, err := database.InitDB("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("failed to init test db: %v", err)
+	}
+	defer db.Close()
+
+	router := server.NewRouter(db, &config.Config{JWTSecret: "secret"})
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/api/admin/users", nil)
+	req.Header.Set("Authorization", "Bearer token_1_admin_0")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401 with forged token, got %v", resp.Status)
 	}
 }
