@@ -1,27 +1,27 @@
-# 🛒 Projet E-Commerce CLI (Go)
+# Projet E-Commerce CLI (Go)
 
 Une application d'E-Commerce complète et interactive en ligne de commande (TUI - Terminal User Interface) développée en Go.
 Le projet respecte une architecture Backend moderne (API REST) couplée à deux interfaces clientes distinctes (Client & Administrateur) accessibles directement dans le terminal ou via une connexion SSH.
 
 ---
 
-## ✨ Fonctionnalités Principales
+## Fonctionnalités Principales
 
-### 🧑‍💻 Côté Client (Acheteur)
+### Côté Client (Acheteur)
 - **Authentification sécurisée** : Inscription avec hachage de mot de passe, validation de compte par code, connexion via JWT, et réinitialisation de mot de passe.
 - **Catalogue & Recherche** : Parcourir les produits disponibles et recherche floue (full-text search) via l'API.
 - **Panier d'achats** : Ajout et gestion de produits dans un panier avec persistance en base de données.
 - **Paiement** : Saisie des informations bancaires (numéro de carte, date d'expiration, CVC) avec validation et paiement simulé côté serveur.
 - **Historique des commandes** : Consultation des commandes passées avec le détail des produits et suivi du statut (En préparation, expédié, livré).
 
-### 🛡️ Côté Administrateur (Gérant)
+### Côté Administrateur (Gérant)
 - **Gestion des produits** : Ajout, modification, ou suppression de produits dans le catalogue.
 - **Gestion des commandes** : Validation des paiements et changement de statut d'une commande (ex: passer de "Payé" à "Expédié").
 - **Gestion des utilisateurs** : Droit de modification et de bannissement/suppression d'utilisateurs.
 
 ---
 
-## 🏗️ Architecture & Technologies
+## Architecture & Technologies
 
 - **Langage** : Go (Golang)
 - **Base de données** : PostgreSQL 16
@@ -32,7 +32,7 @@ Le projet respecte une architecture Backend moderne (API REST) couplée à deux 
 
 ---
 
-## 🚀 Guide de Démarrage
+## Guide de Démarrage
 
 ### 1. Prérequis
 - [Go](https://go.dev/dl/) (version 1.20 ou supérieure)
@@ -55,7 +55,7 @@ Le serveur API tourne désormais sur `http://localhost:8080`.
 
 ---
 
-## 🎮 Utilisation de l'Application
+## Utilisation de l'Application
 
 Vous avez deux manières de lancer les applications clientes (Client ou Admin) :
 
