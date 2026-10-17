@@ -2,6 +2,7 @@ package orders
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,6 +33,8 @@ func NewOrderClient(baseURL, token string, in io.Reader, out io.Writer) *OrderCl
 	return &OrderClient{
 		BaseURL: baseURL,
 		Token:   token,
+		In:      in,
+		Out:     out,
 	}
 }
 
@@ -53,7 +56,7 @@ func (c *OrderClient) fetchOrders() ([]models.Order, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf(string(body))
+		return nil, errors.New(string(body))
 	}
 
 	var orders []models.Order

@@ -22,14 +22,10 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 
 func (r *ProductRepository) Create(p *models.Product) error {
 	query := `INSERT INTO products (business_id, name, description, price, category, stock) 
-	          VALUES (?, ?, ?, ?, ?, ?)`
-	res, err := r.db.Exec(database.RebindQuery(query), p.BusinessID, p.Name, p.Description, p.Price, p.Category, p.Stock)
+	          VALUES (?, ?, ?, ?, ?, ?) RETURNING id`
+	err := r.db.QueryRow(database.RebindQuery(query), p.BusinessID, p.Name, p.Description, p.Price, p.Category, p.Stock).Scan(&p.ID)
 	if err != nil {
 		return fmt.Errorf("failed to insert product: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err == nil {
-		p.ID = id
 	}
 	return nil
 }

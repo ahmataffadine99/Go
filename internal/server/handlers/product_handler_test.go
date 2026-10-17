@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"ecommerce-cli/internal/config"
 	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/server"
@@ -39,7 +40,7 @@ func TestProductSearch(t *testing.T) {
 		t.Fatalf("failed to execute schema: %v", err)
 	}
 
-	router := server.NewRouter(db, "sqlite")
+	router := server.NewRouter(db, &config.Config{})
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 

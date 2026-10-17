@@ -21,14 +21,10 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(user *models.User) error {
 	query := `INSERT INTO users (email, password_hash, role, is_confirmed, confirmation_code) 
-	          VALUES (?, ?, ?, ?, ?)`
-	res, err := r.db.Exec(database.RebindQuery(query), user.Email, user.PasswordHash, user.Role, user.IsConfirmed, user.ConfirmationCode)
+	          VALUES (?, ?, ?, ?, ?) RETURNING id`
+	err := r.db.QueryRow(database.RebindQuery(query), user.Email, user.PasswordHash, user.Role, user.IsConfirmed, user.ConfirmationCode).Scan(&user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err == nil {
-		user.ID = id
 	}
 	return nil
 }

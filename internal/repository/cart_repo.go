@@ -27,12 +27,11 @@ func (r *CartRepository) GetOrCreateActiveCart(userID int64) (*models.Cart, erro
 	err := row.Scan(&c.ID, &c.BusinessID, &c.UserID, &c.Status, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		bID := utils.GenerateCartID()
-		insertQ := `INSERT INTO carts (business_id, user_id, status) VALUES (?, ?, 'active')`
-		res, err := r.db.Exec(database.RebindQuery(insertQ), bID, userID)
-		if err != nil {
+		insertQ := `INSERT INTO carts (business_id, user_id, status) VALUES (?, ?, 'active') RETURNING id`
+		var id int64
+		if err := r.db.QueryRow(database.RebindQuery(insertQ), bID, userID).Scan(&id); err != nil {
 			return nil, fmt.Errorf("failed to create cart: %w", err)
 		}
-		id, _ := res.LastInsertId()
 		c = models.Cart{
 			ID:         id,
 			BusinessID: bID,

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"ecommerce-cli/internal/config"
 	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/server"
 )
@@ -33,7 +34,7 @@ func TestAuthFlow(t *testing.T) {
 		t.Fatalf("failed to create schema: %v", err)
 	}
 
-	router := server.NewRouter(db, "sqlite")
+	router := server.NewRouter(db, &config.Config{})
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
