@@ -11,7 +11,7 @@ Le projet respecte une architecture Backend moderne (API REST) couplée à deux 
 - **Authentification sécurisée** : Inscription avec hachage salé du mot de passe (PBKDF2), validation de compte par code aléatoire, connexion par token signé (HMAC-SHA256) et réinitialisation du mot de passe par code envoyé par email (simulé dans les logs du serveur).
 - **Catalogue & Recherche** : Recherche par nom, description, identifiant métier, catégorie, prix HT ou prix TTC (TVA 20%).
 - **Panier d'achats** : Ajout, modification et suppression de produits dans un panier lié au compte (identifiant BSK-XXXXXX), total TTC avec livraison gratuite.
-- **Paiement** : Saisie des informations bancaires (numéro de carte, date d'expiration, CVC) avec validation et paiement simulé côté serveur.
+- **Paiement** : Saisie des informations bancaires (numéro de carte avec vérification par algorithme de Luhn, date d'expiration, CVC) avec simulation sécurisée du débit côté serveur.
 - **Historique des commandes** : Consultation des commandes (identifiant CMD-XXXXXX) avec la date, le détail des produits et le statut (en attente, payé, en cours de livraison, livré, annulé avec la raison).
 
 ### Côté Administrateur (Gérant)
@@ -72,33 +72,40 @@ Lancer directement l'application interactive dans votre propre terminal :
 ```bash
 # Lancer l'interface Client (Acheteurs)
 go run ./cmd/client
+# ou explicitement en mode interactif
+go run ./cmd/client interactive
 
 # Lancer l'interface Admin (Gérants)
 go run ./cmd/admin
 
-# Changer l'adresse du serveur HTTP
+# Commandes utilitaires du client CLI
+go run ./cmd/client status     # Vérifie la connectivité avec l'API
+go run ./cmd/client version    # Affiche la version du client
+
+# Spécifier une adresse de serveur personnalisée
 go run ./cmd/client -url http://localhost:8080
-go run ./cmd/client status
+go run ./cmd/admin -url http://localhost:8080
 ```
 
 ### Option B : Connexion via Réseau SSH (Cloud TUI)
-Pour permettre à n'importe qui de se connecter au magasin sans installer l'application, lancez le serveur SSH :
+Pour permettre à n'importe qui de se connecter au magasin sans installer l'application sur son poste, lancez le serveur SSH :
 ```bash
-# Lancer le serveur SSH (écoute sur le port 2222, variables SSH_PORT et API_URL)
+# Lancer le serveur SSH (écoute par défaut sur le port 2222, configurable via SSH_PORT et API_URL)
 go run ./cmd/ssh
 ```
-Puis, dans un autre terminal (ou depuis un autre ordinateur du réseau), connectez-vous :
+Puis, dans un autre terminal (ou depuis une autre machine du réseau), connectez-vous :
 ```bash
-# Application client
+# Accès à l'application client
 ssh -p 2222 client@localhost
 
-# Application administrateur
+# Accès à l'application administrateur
 ssh -p 2222 admin@localhost
 ```
 
-### Tests
+### Tests Unitaires
+Pour exécuter l'ensemble des tests automatisés :
 ```bash
-go test ./...
+go test ./... -v
 ```
 
 ---
