@@ -10,7 +10,6 @@ require (
 	github.com/charmbracelet/wish v1.4.7
 	github.com/lib/pq v1.12.3
 	github.com/spf13/cobra v1.10.2
-	github.com/stripe/stripe-go/v78 v78.12.0
 	modernc.org/sqlite v1.60.1
 )
 

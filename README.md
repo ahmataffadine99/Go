@@ -11,7 +11,7 @@ Le projet respecte une architecture Backend moderne (API REST) couplée à deux 
 - **Authentification sécurisée** : Inscription avec hachage de mot de passe, validation de compte par code, connexion via JWT, et réinitialisation de mot de passe.
 - **Catalogue & Recherche** : Parcourir les produits disponibles et recherche floue (full-text search) via l'API.
 - **Panier d'achats** : Ajout et gestion de produits dans un panier avec persistance en base de données.
-- **Paiement Stripe** : Intégration de l'API Stripe pour la validation et le paiement par carte bancaire.
+- **Paiement** : Saisie des informations bancaires (numéro de carte, date d'expiration, CVC) avec validation et paiement simulé côté serveur.
 - **Historique des commandes** : Consultation des commandes passées avec le détail des produits et suivi du statut (En préparation, expédié, livré).
 
 ### 🛡️ Côté Administrateur (Gérant)
@@ -37,7 +37,6 @@ Le projet respecte une architecture Backend moderne (API REST) couplée à deux 
 ### 1. Prérequis
 - [Go](https://go.dev/dl/) (version 1.20 ou supérieure)
 - [Docker & Docker Compose](https://www.docker.com/)
-- Un compte Stripe (Clé Secrète de test)
 
 ### 2. Installation
 Clonez le dépôt et préparez les variables d'environnement en copiant le fichier d'exemple :
@@ -46,7 +45,6 @@ git clone https://github.com/ahmataffadine99/Go.git
 cd Go
 cp .env.example .env
 ```
-*(N'oubliez pas d'éditer le fichier `.env` pour y ajouter votre clé secrète Stripe `STRIPE_SECRET_KEY`)*.
 
 ### 3. Lancement du Backend & Base de données
 Utilisez Docker pour lever l'architecture serveur (Base de données PostgreSQL + API Go) en arrière-plan :

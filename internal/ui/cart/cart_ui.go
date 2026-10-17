@@ -305,7 +305,7 @@ func (c *CartClient) runPay(cart *models.Cart) bool {
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Numéro de carte (16 chiffres)").Value(&card),
+			huh.NewInput().Title("Numéro de carte (ex: 4242 4242 4242 4242)").Value(&card),
 			huh.NewInput().Title("Date d'expiration (MM/YY)").Value(&exp),
 			huh.NewInput().Title("CVC (3 chiffres)").Value(&cvc),
 		),

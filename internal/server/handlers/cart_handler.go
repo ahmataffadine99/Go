@@ -4,28 +4,23 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/repository"
 	"ecommerce-cli/internal/utils"
-	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/paymentintent"
 )
 
 type CartHandler struct {
 	cartRepo    *repository.CartRepository
 	orderRepo   *repository.OrderRepository
 	productRepo *repository.ProductRepository
-	stripeKey   string
 }
 
-func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository, stripeKey string) *CartHandler {
+func NewCartHandler(cartRepo *repository.CartRepository, orderRepo *repository.OrderRepository, productRepo *repository.ProductRepository) *CartHandler {
 	return &CartHandler{
 		cartRepo:    cartRepo,
 		orderRepo:   orderRepo,
 		productRepo: productRepo,
-		stripeKey:   stripeKey,
 	}
 }
 
@@ -166,37 +161,6 @@ func (h *CartHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		!utils.ValidateExpiry(req.ExpiryDate) {
 		http.Error(w, `{"error":"invalid card details"}`, http.StatusBadRequest)
 		return
-	}
-
-	if h.stripeKey != "" {
-		stripe.Key = h.stripeKey
-
-		amountCents := int64(cart.TotalTTC * 100)
-
-		var pmID string
-		if strings.ReplaceAll(req.CardNumber, " ", "") == "4242424242424242" {
-			pmID = "pm_card_visa" // Pre-defined Stripe test payment method
-		} else {
-			http.Error(w, `{"error":"Pour des raisons de sécurité Stripe (CLI Backend), veuillez utiliser la carte de test officielle 4242424242424242"}`, http.StatusBadRequest)
-			return
-		}
-
-		piParams := &stripe.PaymentIntentParams{
-			Amount:        stripe.Int64(amountCents),
-			Currency:      stripe.String(string(stripe.CurrencyEUR)),
-			PaymentMethod: stripe.String(pmID),
-			Confirm:       stripe.Bool(true),
-			AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
-				Enabled:        stripe.Bool(true),
-				AllowRedirects: stripe.String("never"),
-			},
-		}
-
-		_, err = paymentintent.New(piParams)
-		if err != nil {
-			http.Error(w, `{"error":"stripe payment failed: `+err.Error()+`"}`, http.StatusBadRequest)
-			return
-		}
 	}
 
 	order, err := h.orderRepo.CreateFromCart(userID, cart.ID, cart.Items, cart.TotalTTC)

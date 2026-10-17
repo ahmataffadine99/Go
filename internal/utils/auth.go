@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -23,11 +24,38 @@ func GenerateSimpleToken(userID int64, role string) string {
 }
 
 func ValidateCardNumber(card string) bool {
-	return len(card) >= 12 && len(card) <= 19
+	card = strings.ReplaceAll(card, " ", "")
+	if len(card) < 12 || len(card) > 19 || !isDigits(card) {
+		return false
+	}
+
+	sum := 0
+	double := false
+	for i := len(card) - 1; i >= 0; i-- {
+		d := int(card[i] - '0')
+		if double {
+			d *= 2
+			if d > 9 {
+				d -= 9
+			}
+		}
+		sum += d
+		double = !double
+	}
+	return sum%10 == 0
 }
 
 func ValidateCVC(cvc string) bool {
-	return len(cvc) == 3 || len(cvc) == 4
+	return (len(cvc) == 3 || len(cvc) == 4) && isDigits(cvc)
+}
+
+func isDigits(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 func ValidateExpiry(expiry string) bool {
