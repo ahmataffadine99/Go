@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"ecommerce-cli/internal/models"
+	"ecommerce-cli/internal/ui/components"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
@@ -66,40 +67,47 @@ func (c *OrderClient) fetchOrders() ([]models.Order, error) {
 	return orders, nil
 }
 
+func formatDate(s string) string {
+	s = strings.Replace(s, "T", " ", 1)
+	if len(s) > 16 {
+		return s[:16]
+	}
+	return s
+}
+
 func (c *OrderClient) RunOrdersMenu() {
-	for {
+	var orders []models.Order
+	err := components.RunWithSpinner(c.In, c.Out, "Chargement de vos commandes...", func() error {
+		var err error
+		orders, err = c.fetchOrders()
+		return err
+	})
+	if err != nil {
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: Impossible de récupérer vos commandes."))
+		return
+	}
+
+	if len(orders) == 0 {
 		fmt.Fprintln(c.Out, titleStyle.Render("=== Mes Commandes ==="))
-		
-		orders, err := c.fetchOrders()
-		if err != nil {
-			fmt.Fprintln(c.Out, errorStyle.Render("Erreur: Impossible de récupérer vos commandes."))
+		fmt.Fprintln(c.Out, infoStyle.Render("Vous n'avez passé aucune commande pour le moment."))
+		return
+	}
+
+	rows := make([][]string, len(orders))
+	for i, o := range orders {
+		status := string(o.Status)
+		if o.Status == models.OrderStatusCanceled && o.CancelReason != "" {
+			status += " (" + o.CancelReason + ")"
+		}
+		rows[i] = []string{o.BusinessID, formatDate(o.CreatedAt), fmt.Sprintf("%d", len(o.Items)), fmt.Sprintf("%.2f €", o.TotalTTC), status}
+	}
+
+	for {
+		idx, ok := components.RunTable(c.In, c.Out, "Mes Commandes", []string{"Identifiant", "Date", "Produits", "Total TTC", "Statut"}, rows)
+		if !ok {
 			return
 		}
-
-		if len(orders) == 0 {
-			fmt.Fprintln(c.Out, infoStyle.Render("Vous n'avez passé aucune commande pour le moment."))
-		} else {
-			for _, o := range orders {
-				dateStr := o.CreatedAt
-				
-				var itemsStr []string
-				for _, item := range o.Items {
-					prodName := "Produit inconnu"
-					if item.Product != nil {
-						prodName = item.Product.Name
-					}
-					itemsStr = append(itemsStr, fmt.Sprintf("  - %s (x%d) : %.2f € TTC l'unité", prodName, item.Quantity, item.UnitPrice))
-				}
-				
-				content := fmt.Sprintf("Commande #%d (Identifiant: %s)\nDate: %s\nStatut: %s\nTotal TTC: %.2f €\n\nProduits:\n%s",
-					o.ID, o.BusinessID, dateStr, string(o.Status), o.TotalTTC, strings.Join(itemsStr, "\n"))
-					
-				if o.CancelReason != "" {
-					content += fmt.Sprintf("\n\nRaison (si annulée): %s", o.CancelReason)
-				}
-				fmt.Fprintln(c.Out, orderStyle.Render(content))
-			}
-		}
+		c.printOrder(orders[idx])
 
 		var action string
 		form := huh.NewForm(
@@ -107,6 +115,7 @@ func (c *OrderClient) RunOrdersMenu() {
 				huh.NewSelect[string]().
 					Title("Action").
 					Options(
+						huh.NewOption("Revenir à la liste", "list"),
 						huh.NewOption("Retour au menu principal", "back"),
 					).
 					Value(&action),
@@ -117,4 +126,23 @@ func (c *OrderClient) RunOrdersMenu() {
 			return
 		}
 	}
+}
+
+func (c *OrderClient) printOrder(o models.Order) {
+	var itemsStr []string
+	for _, item := range o.Items {
+		prodName := "Produit inconnu"
+		if item.Product != nil {
+			prodName = item.Product.Name
+		}
+		itemsStr = append(itemsStr, fmt.Sprintf("  - %s (x%d) : %.2f € TTC l'unité", prodName, item.Quantity, item.UnitPrice))
+	}
+
+	content := fmt.Sprintf("Commande %s\nDate: %s\nStatut: %s\nTotal TTC: %.2f €\n\nProduits:\n%s",
+		o.BusinessID, formatDate(o.CreatedAt), string(o.Status), o.TotalTTC, strings.Join(itemsStr, "\n"))
+
+	if o.CancelReason != "" {
+		content += fmt.Sprintf("\n\nRaison de l'annulation: %s", o.CancelReason)
+	}
+	fmt.Fprintln(c.Out, orderStyle.Render(content))
 }
