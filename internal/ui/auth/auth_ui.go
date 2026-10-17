@@ -66,7 +66,7 @@ func (c *AuthClient) RunLoginForm() error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Echec de la connexion: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Echec de la connexion: "+string(body)))
 		return fmt.Errorf("login failed")
 	}
 
@@ -122,7 +122,7 @@ func (c *AuthClient) RunRegisterForm() error {
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
-		fmt.Fprintln(c.Out, errorStyle.Render("Erreur lors de l'inscription: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur lors de l'inscription: "+string(body)))
 		return fmt.Errorf("registration failed")
 	}
 
@@ -172,7 +172,7 @@ func (c *AuthClient) RunConfirmFormWithEmail(defaultEmail, defaultCode string) e
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Confirmation échouée: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Confirmation échouée: "+string(body)))
 		return fmt.Errorf("confirmation failed")
 	}
 
@@ -238,7 +238,7 @@ func (c *AuthClient) RunResetPasswordForm() error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Echec réinitialisation: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Echec réinitialisation: "+string(body)))
 		return fmt.Errorf("reset failed")
 	}
 

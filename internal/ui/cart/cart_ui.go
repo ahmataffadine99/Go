@@ -50,7 +50,7 @@ func (c *CartClient) RunCartMenu() error {
 	for {
 		cart, err := c.fetchCart()
 		if err != nil {
-			fmt.Fprintln(c.Out, errorStyle.Render("Erreur de récupération du panier: " + err.Error()))
+			fmt.Fprintln(c.Out, errorStyle.Render("Erreur de récupération du panier: "+err.Error()))
 			return err
 		}
 
@@ -199,7 +199,7 @@ func (c *CartClient) runAddItem() {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: "+string(body)))
 		return
 	}
 
@@ -253,7 +253,7 @@ func (c *CartClient) runUpdateItem(cart *models.Cart) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: "+string(body)))
 		return
 	}
 
@@ -296,7 +296,7 @@ func (c *CartClient) runRemoveItem(cart *models.Cart) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Erreur: "+string(body)))
 		return
 	}
 
@@ -333,7 +333,7 @@ func (c *CartClient) runPay(cart *models.Cart) bool {
 
 	if resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		fmt.Fprintln(c.Out, errorStyle.Render("Paiement refusé: " + string(body)))
+		fmt.Fprintln(c.Out, errorStyle.Render("Paiement refusé: "+string(body)))
 		return false
 	}
 

@@ -29,8 +29,8 @@ type CreateProductRequest struct {
 }
 
 type ProductFilter struct {
-	Query    string  `json:"query"`
-	Category string  `json:"category"`
+	Query       string  `json:"query"`
+	Category    string  `json:"category"`
 	MinPrice    float64 `json:"min_price"`
 	MaxPrice    float64 `json:"max_price"`
 	MinPriceTTC float64 `json:"min_price_ttc"`

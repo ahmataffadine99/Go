@@ -50,7 +50,7 @@ func RunMigrations(db *sql.DB, schemaPath string) error {
 		if stmt == "" {
 			continue
 		}
-		
+
 		if CurrentDriver == "sqlite" {
 			stmt = strings.ReplaceAll(stmt, "SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
 			stmt = strings.ReplaceAll(stmt, "TIMESTAMP", "DATETIME")
