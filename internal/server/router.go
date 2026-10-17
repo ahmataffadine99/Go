@@ -23,7 +23,7 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	authH := handlers.NewAuthHandler(userRepo, cfg.JWTSecret)
 	prodH := handlers.NewProductHandler(productRepo)
 	cartH := handlers.NewCartHandler(cartRepo, orderRepo, productRepo)
-	orderH := handlers.NewOrderHandler(orderRepo, userRepo)
+	orderH := handlers.NewOrderHandler(orderRepo, userRepo, productRepo)
 	userH := handlers.NewUserHandler(userRepo)
 
 	// Public Auth Endpoints
@@ -49,8 +49,11 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	// Admin Orders & Users Endpoints
 	mux.HandleFunc("/api/admin/orders", admin(orderH.AdminListAll))
 	mux.HandleFunc("/api/admin/orders/status", admin(orderH.AdminUpdateStatus))
+	mux.HandleFunc("/api/admin/orders/create", admin(orderH.AdminCreateOrder))
 	mux.HandleFunc("/api/admin/users", admin(userH.ListAll))
 	mux.HandleFunc("/api/admin/users/create", admin(userH.CreateUser))
+	mux.HandleFunc("/api/admin/users/update", admin(userH.UpdateUser))
+	mux.HandleFunc("/api/admin/users/confirm", admin(userH.ConfirmUser))
 	mux.HandleFunc("/api/admin/users/delete", admin(userH.DeleteUser))
 
 	return mux

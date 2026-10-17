@@ -32,10 +32,10 @@ func (h *ProductHandler) SearchOrList(w http.ResponseWriter, r *http.Request) {
 	maxPriceTTC, _ := strconv.ParseFloat(q.Get("max_price_ttc"), 64)
 
 	filter := models.ProductFilter{
-		Query:    q.Get("q"),
-		Category: q.Get("category"),
-		MinPrice: minPrice,
-		MaxPrice: maxPrice,
+		Query:       q.Get("q"),
+		Category:    q.Get("category"),
+		MinPrice:    minPrice,
+		MaxPrice:    maxPrice,
 		MinPriceTTC: minPriceTTC,
 		MaxPriceTTC: maxPriceTTC,
 	}

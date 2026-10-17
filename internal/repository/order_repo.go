@@ -4,13 +4,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 
 	"ecommerce-cli/internal/database"
 	"ecommerce-cli/internal/models"
 	"ecommerce-cli/internal/utils"
 )
 
-var ErrOrderNotFound = errors.New("order not found")
+var (
+	ErrOrderNotFound     = errors.New("order not found")
+	ErrInsufficientStock = errors.New("insufficient stock")
+)
 
 type OrderRepository struct {
 	db *sql.DB
@@ -25,6 +29,32 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 		return nil, ErrCartEmpty
 	}
 
+	orderItems := make([]models.OrderItem, 0, len(items))
+	for _, item := range items {
+		orderItems = append(orderItems, models.OrderItem{
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			UnitPrice: item.Product.PriceTTC,
+		})
+	}
+
+	return r.create(userID, cartID, orderItems, totalTTC, models.OrderStatusPaid)
+}
+
+func (r *OrderRepository) CreateForUser(userID int64, items []models.OrderItem) (*models.Order, error) {
+	if len(items) == 0 {
+		return nil, ErrCartEmpty
+	}
+
+	var total float64
+	for _, item := range items {
+		total += item.UnitPrice * float64(item.Quantity)
+	}
+
+	return r.create(userID, 0, items, math.Round(total*100)/100, models.OrderStatusPending)
+}
+
+func (r *OrderRepository) create(userID, cartID int64, items []models.OrderItem, totalTTC float64, status models.OrderStatus) (*models.Order, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
@@ -33,24 +63,32 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 
 	bID := utils.GenerateOrderID()
 	orderQuery := `INSERT INTO orders (business_id, user_id, cart_id, total_ttc, status) VALUES (?, ?, ?, ?, ?) RETURNING id`
-	
+
 	var orderID int64
-	err = tx.QueryRow(database.RebindQuery(orderQuery), bID, userID, cartID, totalTTC, string(models.OrderStatusPaid)).Scan(&orderID)
+	err = tx.QueryRow(database.RebindQuery(orderQuery), bID, userID, cartID, totalTTC, string(status)).Scan(&orderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert order: %w", err)
 	}
 
 	for _, item := range items {
-		itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`
-		_, err := tx.Exec(database.RebindQuery(itemQuery), orderID, item.ProductID, item.Quantity, item.Product.PriceTTC)
+		res, err := tx.Exec(database.RebindQuery("UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?"), item.Quantity, item.ProductID, item.Quantity)
 		if err != nil {
+			return nil, err
+		}
+		if affected, _ := res.RowsAffected(); affected == 0 {
+			return nil, ErrInsufficientStock
+		}
+
+		itemQuery := `INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`
+		if _, err := tx.Exec(database.RebindQuery(itemQuery), orderID, item.ProductID, item.Quantity, item.UnitPrice); err != nil {
 			return nil, fmt.Errorf("failed to insert order item: %w", err)
 		}
 	}
 
-	_, err = tx.Exec(database.RebindQuery("UPDATE carts SET status = 'completed' WHERE id = ?"), cartID)
-	if err != nil {
-		return nil, err
+	if cartID != 0 {
+		if _, err := tx.Exec(database.RebindQuery("UPDATE carts SET status = 'completed' WHERE id = ?"), cartID); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -63,7 +101,8 @@ func (r *OrderRepository) CreateFromCart(userID, cartID int64, items []models.Ca
 		UserID:     userID,
 		CartID:     cartID,
 		TotalTTC:   totalTTC,
-		Status:     models.OrderStatusPaid,
+		Status:     status,
+		Items:      items,
 	}, nil
 }
 

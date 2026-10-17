@@ -38,9 +38,14 @@ type UpdateOrderStatusRequest struct {
 }
 
 type AdminCreateOrderRequest struct {
-	UserID     int64              `json:"user_id"`
-	Items      []AddToCartRequest `json:"items"`
-	CardNumber string             `json:"card_number"`
-	ExpiryDate string             `json:"expiry_date"`
-	CVC        string             `json:"cvc"`
+	UserID int64              `json:"user_id"`
+	Items  []AddToCartRequest `json:"items"`
+}
+
+func (s OrderStatus) IsValid() bool {
+	switch s {
+	case OrderStatusPending, OrderStatusPaid, OrderStatusShipping, OrderStatusDelivered, OrderStatusCanceled:
+		return true
+	}
+	return false
 }

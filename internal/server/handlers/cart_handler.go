@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -164,6 +165,10 @@ func (h *CartHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	order, err := h.orderRepo.CreateFromCart(userID, cart.ID, cart.Items, cart.TotalTTC)
+	if errors.Is(err, repository.ErrInsufficientStock) {
+		http.Error(w, `{"error":"insufficient stock"}`, http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		http.Error(w, `{"error":"payment failed or order creation error"}`, http.StatusInternalServerError)
 		return

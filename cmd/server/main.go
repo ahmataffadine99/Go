@@ -6,7 +6,9 @@ import (
 
 	"ecommerce-cli/internal/config"
 	"ecommerce-cli/internal/database"
+	"ecommerce-cli/internal/repository"
 	"ecommerce-cli/internal/server"
+	"ecommerce-cli/internal/utils"
 )
 
 func main() {
@@ -20,6 +22,10 @@ func main() {
 
 	if err := database.RunMigrations(db, "internal/database/schema.sql"); err != nil {
 		log.Printf("migration warning: %v", err)
+	}
+
+	if err := repository.NewUserRepository(db).EnsureAdmin(cfg.AdminEmail, utils.HashPassword(cfg.AdminPass)); err != nil {
+		log.Printf("failed to create admin account: %v", err)
 	}
 
 	router := server.NewRouter(db, cfg)

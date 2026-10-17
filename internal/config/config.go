@@ -10,6 +10,8 @@ type Config struct {
 	DBDriver    string
 	SSHPort     string
 	JWTSecret   string
+	AdminEmail  string
+	AdminPass   string
 }
 
 func LoadConfig() *Config {
@@ -38,11 +40,23 @@ func LoadConfig() *Config {
 		jwtSecret = "super-secret-key-change-in-production"
 	}
 
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "admin@shop.local"
+	}
+
+	adminPass := os.Getenv("ADMIN_PASSWORD")
+	if adminPass == "" {
+		adminPass = "admin123"
+	}
+
 	return &Config{
 		ServerPort:  port,
 		DatabaseURL: dbURL,
 		DBDriver:    dbDriver,
 		SSHPort:     sshPort,
 		JWTSecret:   jwtSecret,
+		AdminEmail:  adminEmail,
+		AdminPass:   adminPass,
 	}
 }

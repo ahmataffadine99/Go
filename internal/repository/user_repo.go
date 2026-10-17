@@ -128,6 +128,49 @@ func (r *UserRepository) ListAll() ([]models.User, error) {
 	return users, nil
 }
 
+func (r *UserRepository) Update(id int64, email, role string) error {
+	res, err := r.db.Exec(database.RebindQuery("UPDATE users SET email = ?, role = ? WHERE id = ?"), email, role, id)
+	if err != nil {
+		return err
+	}
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdatePasswordByID(id int64, newPasswordHash string) error {
+	_, err := r.db.Exec(database.RebindQuery("UPDATE users SET password_hash = ? WHERE id = ?"), newPasswordHash, id)
+	return err
+}
+
+func (r *UserRepository) ConfirmByID(id int64) error {
+	res, err := r.db.Exec(database.RebindQuery("UPDATE users SET is_confirmed = TRUE, confirmation_code = '' WHERE id = ?"), id)
+	if err != nil {
+		return err
+	}
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) EnsureAdmin(email, passwordHash string) error {
+	_, err := r.GetByEmail(email)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, ErrUserNotFound) {
+		return err
+	}
+	return r.Create(&models.User{
+		Email:        email,
+		PasswordHash: passwordHash,
+		Role:         "admin",
+		IsConfirmed:  true,
+	})
+}
+
 func (r *UserRepository) Delete(id int64) error {
 	_, err := r.db.Exec(database.RebindQuery("DELETE FROM users WHERE id = ?"), id)
 	return err
