@@ -61,6 +61,11 @@ go run ./cmd/server
 
 Au démarrage, un compte administrateur est créé s'il n'existe pas encore. Ses identifiants sont définis par `ADMIN_EMAIL` et `ADMIN_PASSWORD` (par défaut `admin@shop.local` / `admin123`).
 
+> **Note sur la validation par email (Mock Email) :**  
+> Conformément aux spécifications, l'envoi d'emails est simulé côté serveur. Les codes de confirmation d'inscription et de réinitialisation de mot de passe sont consultables en temps réel dans les logs du serveur :
+> - Si le serveur tourne sous Docker : `docker logs -f ecommerce_backend`
+> - Si le serveur tourne en local : les codes apparaissent directement dans le terminal exécutant `go run ./cmd/server`.
+
 ---
 
 ## Utilisation de l'Application
