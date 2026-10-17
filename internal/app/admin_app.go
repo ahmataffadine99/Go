@@ -29,6 +29,7 @@ func RunAdminApp(baseURL string, in io.Reader, out io.Writer) {
 		} else {
 			options = []huh.Option[string]{
 				huh.NewOption("Gérer les commandes", "orders"),
+				huh.NewOption("Gérer les utilisateurs", "users"),
 				huh.NewOption("Gérer les produits", "products"),
 				huh.NewOption("Déconnexion", "logout"),
 				huh.NewOption("Quitter", "quit"),
@@ -55,6 +56,8 @@ func RunAdminApp(baseURL string, in io.Reader, out io.Writer) {
 			_ = client.Login()
 		case "orders":
 			client.RunOrdersMenu()
+		case "users":
+			client.RunUsersMenu()
 		case "products":
 			client.RunProductsMenu()
 		case "logout":

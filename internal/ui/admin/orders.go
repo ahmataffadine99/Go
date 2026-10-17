@@ -208,7 +208,7 @@ func (c *Client) createOrder() {
 
 		quantityStr = "1"
 		if err := c.runForm(huh.NewGroup(
-			huh.NewInput().Title("Quantité de "+productByID[productID].Name).Value(&quantityStr).Validate(func(s string) error {
+			huh.NewInput().Title("Quantité de " + productByID[productID].Name).Value(&quantityStr).Validate(func(s string) error {
 				if q, err := strconv.Atoi(strings.TrimSpace(s)); err != nil || q <= 0 {
 					return errors.New("entier strictement positif attendu")
 				}
