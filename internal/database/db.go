@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 )
 
 var CurrentDriver string
+
+var timestampType = regexp.MustCompile(`\bTIMESTAMP\b`)
 
 func InitDB(driverName, dataSourceName string) (*sql.DB, error) {
 	CurrentDriver = driverName
@@ -53,9 +56,7 @@ func RunMigrations(db *sql.DB, schemaPath string) error {
 
 		if CurrentDriver == "sqlite" {
 			stmt = strings.ReplaceAll(stmt, "SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
-			stmt = strings.ReplaceAll(stmt, "TIMESTAMP", "DATETIME")
-			// SQLite n'a pas de DOUBLE PRECISION, mais il l'accepte.
-			// Toutefois, SQLite gère mal le type TIMESTAMP s'il n'est pas formaté, mais pour ID ça règle le crash.
+			stmt = timestampType.ReplaceAllString(stmt, "DATETIME")
 		}
 
 		if _, err := db.Exec(stmt); err != nil {
