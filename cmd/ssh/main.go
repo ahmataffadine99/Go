@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -23,6 +24,18 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+func sessionInput(s ssh.Session) (*os.File, error) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		io.Copy(w, s)
+		w.Close()
+	}()
+	return r, nil
+}
+
 func main() {
 	baseURL := getEnv("API_URL", "http://localhost:8080")
 	addr := net.JoinHostPort("0.0.0.0", getEnv("SSH_PORT", "2222"))
@@ -33,10 +46,17 @@ func main() {
 		wish.WithMiddleware(
 			func(h ssh.Handler) ssh.Handler {
 				return func(s ssh.Session) {
+					in, err := sessionInput(s)
+					if err != nil {
+						wish.Fatalln(s, err)
+						return
+					}
+					defer in.Close()
+
 					if s.User() == "admin" {
-						app.RunAdminApp(baseURL, s, s)
+						app.RunAdminApp(baseURL, in, s)
 					} else {
-						app.RunClientApp(baseURL, s, s)
+						app.RunClientApp(baseURL, in, s)
 					}
 					h(s)
 				}
